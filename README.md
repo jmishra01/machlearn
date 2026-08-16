@@ -1,0 +1,58 @@
+# MachLearn
+
+MachLearn is an early-stage, CPU-first machine-learning library written in
+Rust. The initial goal is a dependable classical machine-learning API for
+dense tabular data.
+
+The current foundation provides:
+
+- a validated `Dataset` type backed by `ndarray`;
+- reusable `Fit`, `Predict`, and `Transform` traits;
+- deterministic train/test splitting;
+- fitted standard and min-max feature scalers;
+- extensible sequential preprocessing pipelines;
+- optional `serde` and parallel-execution features.
+
+## Example
+
+```rust
+use machlearn::{Dataset, SplitOptions, train_test_split};
+use ndarray::array;
+
+let dataset = Dataset::new(
+    array![[1.0], [2.0], [3.0], [4.0]],
+    array![10.0, 20.0, 30.0, 40.0],
+)?;
+
+let (train, test) = train_test_split(
+    &dataset,
+    SplitOptions::default().with_seed(7),
+)?;
+
+assert_eq!(train.n_samples() + test.n_samples(), 4);
+# Ok::<(), machlearn::MlError>(())
+```
+
+## Development
+
+```text
+cargo test --all-features
+cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --check
+```
+
+The crate is not yet published. Its public API may change while the first
+algorithms and pipelines are being implemented.
+
+Development progress and pending milestones are maintained in `TODO.md`.
+
+## More examples
+
+Runnable examples for datasets, splitting, preprocessing, custom models,
+serialization, and parallel batches are indexed in `examples/README.md`.
+
+```text
+cargo run --example dataset
+cargo run --example standard_scaler
+cargo test --examples --all-features
+```

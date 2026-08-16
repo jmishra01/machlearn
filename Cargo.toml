@@ -1,0 +1,33 @@
+[package]
+name = "machlearn"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "A small, reliable machine-learning library written in Rust"
+publish = false
+
+[features]
+default = []
+parallel = ["dep:rayon", "ndarray/rayon"]
+serde = ["dep:serde", "ndarray/serde"]
+
+[dependencies]
+ndarray = "0.17"
+rand = "0.10"
+rand_chacha = "0.10"
+rayon = { version = "1.12", optional = true }
+serde = { version = "1", features = ["derive"], optional = true }
+thiserror = "2"
+
+[dev-dependencies]
+approx = "0.5"
+proptest = "1.11"
+serde_json = "1"
+
+[lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
