@@ -13,6 +13,7 @@ pub mod preprocessing;
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
 pub use crate::model_selection::{SplitOptions, train_test_split};
 pub use crate::preprocessing::{
-    FittedMinMaxScaler, FittedPipeline, FittedStandardScaler, FittedTransformer, MinMaxScaler,
-    Pipeline, StandardScaler, TransformerEstimator,
+    FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,
+    FittedStandardScaler, FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler,
+    Pipeline, SimpleImputer, StandardScaler, TransformerEstimator,
 };

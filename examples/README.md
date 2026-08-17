@@ -9,6 +9,8 @@ root.
 | `train_test_split` | Ordered and deterministic shuffled splits   | `cargo run --example train_test_split`                     |
 | `standard_scaler`  | Standardization and inverse transformation  | `cargo run --example standard_scaler`                      |
 | `min_max_scaler`   | Default and custom output ranges            | `cargo run --example min_max_scaler`                       |
+| `label_encoder`    | Reversible categorical target encoding      | `cargo run --example label_encoder`                        |
+| `simple_imputer`   | Explicit mean/median/constant imputation     | `cargo run --example simple_imputer`                       |
 | `pipeline`         | Ordered fitting without data leakage        | `cargo run --example pipeline`                             |
 | `custom_model`     | Implementing the `Fit` and `Predict` traits | `cargo run --example custom_model`                         |
 | `serde_model`      | Serializing a fitted transformer            | `cargo run --example serde_model --features serde`         |

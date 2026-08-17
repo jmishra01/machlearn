@@ -2,7 +2,8 @@
 
 use approx::assert_abs_diff_eq;
 use machlearn::{
-    FittedTransformer, MinMaxScaler, Pipeline, Result, StandardScaler, TransformerEstimator,
+    FittedTransformer, MinMaxScaler, Pipeline, Result, SimpleImputer, StandardScaler,
+    TransformerEstimator,
 };
 use ndarray::{Array2, ArrayView2, array};
 
@@ -86,4 +87,18 @@ fn accepts_application_defined_transformers() {
         &fitted.transform(records.view()).unwrap(),
         &array![[4.0], [5.0]],
     );
+}
+
+#[test]
+fn imputer_can_clean_missing_values_for_later_steps() {
+    let training = array![[1.0, f64::NAN], [3.0, 2.0], [5.0, 4.0]];
+    let fitted = Pipeline::new()
+        .then(SimpleImputer::mean())
+        .then(StandardScaler::default())
+        .fit(training.view())
+        .unwrap();
+
+    let transformed = fitted.transform(array![[f64::NAN, 3.0]].view()).unwrap();
+    assert!(transformed.iter().all(|value| value.is_finite()));
+    assert_abs_diff_eq!(transformed[[0, 0]], 0.0, epsilon = 1.0e-12);
 }

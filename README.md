@@ -10,6 +10,8 @@ The current foundation provides:
 - reusable `Fit`, `Predict`, and `Transform` traits;
 - deterministic train/test splitting;
 - fitted standard and min-max feature scalers;
+- deterministic categorical label encoding;
+- explicit missing-value imputation;
 - extensible sequential preprocessing pipelines;
 - optional `serde` and parallel-execution features.
 
@@ -45,6 +47,13 @@ The crate is not yet published. Its public API may change while the first
 algorithms and pipelines are being implemented.
 
 Development progress and pending milestones are maintained in `TODO.md`.
+
+## Missing-value policy
+
+`NaN` is the only supported missing-value marker. `Dataset`, scalers, and model
+inputs reject it by default; first fit and apply `SimpleImputer` to raw arrays.
+Positive and negative infinity are invalid everywhere. Mean, median, and finite
+constant imputation strategies are available.
 
 ## More examples
 

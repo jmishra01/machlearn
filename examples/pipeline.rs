@@ -10,6 +10,8 @@ fn main() -> Result<()> {
     let pipeline = Pipeline::new()
         .then(StandardScaler::default())
         .then(MinMaxScaler::new(-1.0, 1.0)?);
+    // Fit only on training data. Reusing this fitted pipeline for test data
+    // prevents test statistics from leaking into preprocessing parameters.
     let fitted = pipeline.fit(training.view())?;
     let transformed_test = fitted.transform(test.view())?;
 

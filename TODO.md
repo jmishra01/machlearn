@@ -26,9 +26,9 @@ Status markers:
 - [x] Implement `StandardScaler`
 - [x] Implement `MinMaxScaler`
 - [x] Add fitted transformer composition through `Pipeline`
-- [ ] Implement categorical label encoding
-- [ ] Define and implement a missing-value policy
-- [ ] Add train-only fitting examples that demonstrate leakage prevention
+- [x] Implement categorical label encoding
+- [x] Define and implement a missing-value policy
+- [x] Add train-only fitting examples that demonstrate leakage prevention
 
 ## 3. Metrics
 
@@ -93,11 +93,11 @@ Status markers:
 
 ## Current milestone exit criteria
 
-The preprocessing milestone is complete when both scalers:
+The metrics milestone is complete when:
 
-- reject empty, non-finite, and wrong-width inputs;
-- learn parameters using training data only;
-- handle constant columns without division by zero;
-- support forward and inverse transforms;
-- round-trip representative data within floating-point tolerance;
-- pass strict Clippy, default-feature tests, and all-feature tests.
+- regression metrics validate equal, non-empty, finite inputs;
+- classification metrics define label ordering and zero-division behavior;
+- probability metrics reject invalid probabilities;
+- reference cases and edge cases have integration tests;
+- every metric has a runnable example;
+- strict Clippy, default-feature tests, and all-feature tests pass.

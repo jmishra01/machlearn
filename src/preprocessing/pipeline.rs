@@ -4,8 +4,11 @@
 
 use ndarray::{Array2, ArrayView2};
 
-use super::{FittedMinMaxScaler, FittedStandardScaler, MinMaxScaler, StandardScaler};
-use crate::core::{Result, Transform, validate_features};
+use super::{
+    FittedMinMaxScaler, FittedSimpleImputer, FittedStandardScaler, MinMaxScaler, SimpleImputer,
+    StandardScaler,
+};
+use crate::core::{Result, Transform, validate_feature_shape, validate_features};
 
 /// An unfitted feature transformer that can be stored in a [`Pipeline`].
 ///
@@ -80,7 +83,11 @@ impl Pipeline {
     /// Returns an error when `records` is invalid or any step fails to fit or
     /// transform its input.
     pub fn fit(&self, records: ArrayView2<'_, f64>) -> Result<FittedPipeline> {
-        validate_features(records)?;
+        if self.steps.is_empty() {
+            validate_features(records)?;
+        } else {
+            validate_feature_shape(records)?;
+        }
 
         let mut current = records.to_owned();
         let mut fitted_steps = Vec::with_capacity(self.steps.len());
@@ -121,7 +128,11 @@ impl FittedPipeline {
     /// Returns an error when `records` is invalid or incompatible with any
     /// fitted step.
     pub fn transform(&self, records: ArrayView2<'_, f64>) -> Result<Array2<f64>> {
-        validate_features(records)?;
+        if self.steps.is_empty() {
+            validate_features(records)?;
+        } else {
+            validate_feature_shape(records)?;
+        }
 
         let mut current = records.to_owned();
         for transformer in &self.steps {
@@ -158,6 +169,18 @@ impl TransformerEstimator for MinMaxScaler {
 }
 
 impl FittedTransformer for FittedMinMaxScaler {
+    fn transform(&self, records: ArrayView2<'_, f64>) -> Result<Array2<f64>> {
+        Self::transform(self, records)
+    }
+}
+
+impl TransformerEstimator for SimpleImputer {
+    fn fit(&self, records: ArrayView2<'_, f64>) -> Result<Box<dyn FittedTransformer>> {
+        Ok(Box::new(Self::fit(self, records)?))
+    }
+}
+
+impl FittedTransformer for FittedSimpleImputer {
     fn transform(&self, records: ArrayView2<'_, f64>) -> Result<Array2<f64>> {
         Self::transform(self, records)
     }

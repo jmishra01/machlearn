@@ -6,4 +6,6 @@ mod validation;
 pub use dataset::Dataset;
 pub use error::{MlError, Result};
 pub use traits::{Fit, Predict, Transform};
-pub(crate) use validation::{validate_feature_count, validate_features};
+pub(crate) use validation::{
+    validate_feature_count, validate_feature_shape, validate_features, validate_features_allow_nan,
+};
