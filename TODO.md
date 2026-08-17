@@ -19,7 +19,7 @@ Status markers:
 - [x] Enable strict formatting and Clippy checks
 - [x] Add runnable examples for every currently exposed capability
 - [ ] Choose and add the project license files
-- [ ] Initialize a Git repository and continuous integration
+- [x] Initialize a Git repository and continuous integration
 
 ## 2. Preprocessing
 
@@ -36,8 +36,8 @@ Status markers:
 - [x] R-squared score
 - [x] Accuracy and confusion matrix
 - [x] Precision, recall, and F1 score
-- [ ] Binary log loss and ROC AUC
-- [ ] Define behavior for empty inputs, zero divisions, and invalid probabilities
+- [x] Binary log loss and ROC AUC
+- [x] Define behavior for empty inputs, zero divisions, and invalid probabilities
 
 ## 4. Model selection
 
@@ -93,11 +93,12 @@ Status markers:
 
 ## Current milestone exit criteria
 
-The metrics milestone is complete when:
+The model-selection milestone is complete when:
 
-- regression metrics validate equal, non-empty, finite inputs;
-- classification metrics define label ordering and zero-division behavior;
-- probability metrics reject invalid probabilities;
-- reference cases and edge cases have integration tests;
-- every metric has a runnable example;
+- K-fold partitions cover every observation exactly once as test data;
+- stratified folds preserve class balance where possible;
+- seeded shuffled folds are reproducible;
+- cross-validation fits preprocessing and models independently per fold;
+- grid search reports deterministic parameter rankings;
+- parallel and sequential evaluation produce equivalent results;
 - strict Clippy, default-feature tests, and all-feature tests pass.

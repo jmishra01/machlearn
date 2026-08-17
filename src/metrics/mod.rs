@@ -1,4 +1,5 @@
 mod classification;
+mod probability;
 mod regression;
 
 pub use classification::{
@@ -7,4 +8,5 @@ pub use classification::{
     confusion_matrix, f1_score, f1_score_with_options, precision_score,
     precision_score_with_options, recall_score, recall_score_with_options,
 };
+pub use probability::{binary_log_loss, roc_auc_score};
 pub use regression::{mean_absolute_error, mean_squared_error, r2_score, root_mean_squared_error};

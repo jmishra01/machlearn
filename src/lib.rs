@@ -15,10 +15,10 @@ pub mod preprocessing;
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
 pub use crate::metrics::{
     Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
-    ZeroDivision, accuracy_score, classification_report, classification_report_with_zero_division,
-    confusion_matrix, f1_score, f1_score_with_options, mean_absolute_error, mean_squared_error,
-    precision_score, precision_score_with_options, r2_score, recall_score,
-    recall_score_with_options, root_mean_squared_error,
+    ZeroDivision, accuracy_score, binary_log_loss, classification_report,
+    classification_report_with_zero_division, confusion_matrix, f1_score, f1_score_with_options,
+    mean_absolute_error, mean_squared_error, precision_score, precision_score_with_options,
+    r2_score, recall_score, recall_score_with_options, roc_auc_score, root_mean_squared_error,
 };
 pub use crate::model_selection::{SplitOptions, train_test_split};
 pub use crate::preprocessing::{

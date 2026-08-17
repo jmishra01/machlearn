@@ -152,6 +152,33 @@ pub enum MlError {
         class_index: usize,
     },
 
+    /// A probability is NaN or infinite.
+    #[error("probability at position {index} is not finite")]
+    NonFiniteProbability {
+        /// Position of the invalid probability.
+        index: usize,
+    },
+
+    /// A probability lies outside the inclusive interval from zero to one.
+    #[error("probability at position {index} must be between 0 and 1; received {value}")]
+    InvalidProbability {
+        /// Position of the invalid probability.
+        index: usize,
+        /// Invalid probability value.
+        value: f64,
+    },
+
+    /// A binary metric received a target collection with the wrong class count.
+    #[error("a binary metric requires exactly two observed classes; received {class_count}")]
+    ExpectedBinaryTargets {
+        /// Number of distinct observed target classes.
+        class_count: usize,
+    },
+
+    /// The requested positive label does not occur in the actual targets.
+    #[error("the requested positive label was not found in the actual targets")]
+    PositiveLabelNotFound,
+
     /// An operation requires more observations than were supplied.
     #[error("at least {required} samples are required, but only {actual} were supplied")]
     InsufficientSamples {

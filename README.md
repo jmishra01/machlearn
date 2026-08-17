@@ -14,6 +14,7 @@ The current foundation provides:
 - explicit missing-value imputation;
 - extensible sequential preprocessing pipelines;
 - regression and classification evaluation metrics;
+- binary probability metrics with strict probability validation;
 - optional `serde` and parallel-execution features.
 
 ## Example
