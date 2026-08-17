@@ -42,7 +42,7 @@ Status markers:
 ## 4. Model selection
 
 - [x] K-fold cross-validation
-- [ ] Stratified K-fold cross-validation
+- [x] Stratified K-fold cross-validation
 - [ ] Cross-validation scoring
 - [ ] Parameter grid representation
 - [ ] Grid search

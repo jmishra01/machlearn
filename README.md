@@ -16,6 +16,7 @@ The current foundation provides:
 - regression and classification evaluation metrics;
 - binary probability metrics with strict probability validation;
 - deterministic balanced K-fold partitioning;
+- deterministic stratified K-fold partitioning;
 - optional `serde` and parallel-execution features.
 
 ## Example

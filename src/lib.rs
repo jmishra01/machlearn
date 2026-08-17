@@ -20,7 +20,7 @@ pub use crate::metrics::{
     mean_absolute_error, mean_squared_error, precision_score, precision_score_with_options,
     r2_score, recall_score, recall_score_with_options, roc_auc_score, root_mean_squared_error,
 };
-pub use crate::model_selection::{Fold, KFold, SplitOptions, train_test_split};
+pub use crate::model_selection::{Fold, KFold, SplitOptions, StratifiedKFold, train_test_split};
 pub use crate::preprocessing::{
     FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,
     FittedStandardScaler, FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler,
