@@ -17,7 +17,9 @@ pub mod model_selection;
 pub mod preprocessing;
 
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
-pub use crate::linear_model::{FittedLinearRegression, LinearRegression};
+pub use crate::linear_model::{
+    FittedLinearRegression, FittedRidgeRegression, LinearRegression, RidgeRegression,
+};
 pub use crate::metrics::{
     Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
     ZeroDivision, accuracy_score, binary_log_loss, classification_report,

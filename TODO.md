@@ -52,7 +52,7 @@ Status markers:
 
 - [x] Add `faer` as the internal numerical solver backend
 - [x] Ordinary least-squares regression using QR or SVD
-- [ ] Ridge regression
+- [x] Ridge regression
 - [ ] Binary logistic regression
 - [ ] Multiclass logistic regression
 - [ ] Convergence reports and configurable stopping criteria

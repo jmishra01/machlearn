@@ -5,7 +5,8 @@
 use ndarray::{Array1, Array2, ArrayView2, Axis};
 
 use crate::{
-    core::{Dataset, Fit, MlError, Predict, Result, validate_feature_count, validate_features},
+    core::{Dataset, Fit, Predict, Result},
+    linear_model::common::predict_linear,
     solver::solve_least_squares,
 };
 
@@ -116,18 +117,7 @@ impl FittedLinearRegression {
     /// Returns an error when features are empty, non-finite, have the wrong
     /// column count, or produce a non-finite prediction.
     pub fn predict(&self, records: ArrayView2<'_, f64>) -> Result<Array1<f64>> {
-        validate_features(records)?;
-        validate_feature_count(records.ncols(), self.n_features())?;
-        let mut predictions = records.dot(&self.coefficients);
-        predictions += self.intercept;
-        if let Some((index, _prediction)) = predictions
-            .iter()
-            .enumerate()
-            .find(|(_index, prediction)| !prediction.is_finite())
-        {
-            return Err(MlError::NonFinitePrediction { index });
-        }
-        Ok(predictions)
+        predict_linear(&self.coefficients, self.intercept, records)
     }
 }
 

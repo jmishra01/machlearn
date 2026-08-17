@@ -8,7 +8,7 @@
 #![allow(clippy::needless_pass_by_value)]
 
 use faer::{Mat, linalg::solvers::SolveLstsq};
-use ndarray::{Array1, ArrayView1, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 
 use crate::core::{MlError, Result, validate_features};
 
@@ -62,6 +62,46 @@ pub(crate) fn solve_least_squares(
     Ok(coefficients)
 }
 
+/// Solves ridge regression as an augmented least-squares system.
+pub(crate) fn solve_ridge(
+    design: ArrayView2<'_, f64>,
+    targets: ArrayView1<'_, f64>,
+    alpha: f64,
+) -> Result<Array1<f64>> {
+    if !alpha.is_finite() || alpha < 0.0 {
+        return Err(MlError::InvalidRegularization(alpha));
+    }
+    if is_zero(alpha) {
+        return solve_least_squares(design, targets);
+    }
+    validate_features(design)?;
+    if design.nrows() != targets.len() {
+        return Err(MlError::MismatchedSampleCount {
+            feature_rows: design.nrows(),
+            target_count: targets.len(),
+        });
+    }
+
+    let mut augmented_design = Array2::zeros((design.nrows() + design.ncols(), design.ncols()));
+    for ((row, column), &value) in design.indexed_iter() {
+        augmented_design[[row, column]] = value;
+    }
+    let penalty = alpha.sqrt();
+    for index in 0..design.ncols() {
+        augmented_design[[design.nrows() + index, index]] = penalty;
+    }
+    let mut augmented_targets = Array1::zeros(targets.len() + design.ncols());
+    for (index, &target) in targets.iter().enumerate() {
+        augmented_targets[index] = target;
+    }
+    solve_least_squares(augmented_design.view(), augmented_targets.view())
+}
+
+#[allow(clippy::float_cmp)]
+fn is_zero(value: f64) -> bool {
+    value == 0.0
+}
+
 fn numerical_rank(
     upper_triangular: faer::MatRef<'_, f64>,
     row_count: usize,
@@ -83,7 +123,7 @@ mod tests {
     use approx::assert_abs_diff_eq;
     use ndarray::array;
 
-    use super::solve_least_squares;
+    use super::{solve_least_squares, solve_ridge};
     use crate::core::MlError;
 
     #[test]
@@ -151,5 +191,15 @@ mod tests {
             solve_least_squares(design.view(), array![1.0, f64::NAN].view()).unwrap_err(),
             MlError::NonFiniteActualTarget { index: 1 }
         );
+    }
+
+    #[test]
+    fn solves_an_augmented_ridge_system() {
+        let design = array![[1.0], [2.0], [3.0]];
+        let targets = array![1.0, 2.0, 3.0];
+
+        let coefficients = solve_ridge(design.view(), targets.view(), 1.0).unwrap();
+
+        assert_abs_diff_eq!(coefficients[0], 14.0 / 15.0, epsilon = 1.0e-12);
     }
 }

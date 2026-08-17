@@ -23,8 +23,9 @@ The current foundation provides:
 - independent per-fold cross-validation scoring;
 - deterministic hyperparameter-grid expansion;
 - deterministic cross-validated grid search and ranking;
-- optional `serde` and deterministic Rayon model-selection features.
+- optional `serde` and deterministic Rayon model-selection features;
 - ordinary least-squares linear regression backed by column-pivoted QR;
+- L2-regularized ridge regression with an unpenalized intercept.
 
 ## Example
 

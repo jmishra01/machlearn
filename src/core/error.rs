@@ -257,6 +257,10 @@ pub enum MlError {
         /// Position of the invalid coefficient.
         index: usize,
     },
+
+    /// A regularization strength is negative, NaN, or infinite.
+    #[error("regularization strength must be finite and non-negative; received {0}")]
+    InvalidRegularization(f64),
 }
 
 /// Result type returned by `MachLearn` operations.
