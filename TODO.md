@@ -32,8 +32,8 @@ Status markers:
 
 ## 3. Metrics
 
-- [ ] Mean squared error, root mean squared error, and mean absolute error
-- [ ] R-squared score
+- [x] Mean squared error, root mean squared error, and mean absolute error
+- [x] R-squared score
 - [ ] Accuracy and confusion matrix
 - [ ] Precision, recall, and F1 score
 - [ ] Binary log loss and ROC AUC

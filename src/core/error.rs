@@ -105,6 +105,44 @@ pub enum MlError {
         column: usize,
     },
 
+    /// A metric was requested with no observations.
+    #[error("a metric requires at least one observation")]
+    EmptyMetricInput,
+
+    /// Actual and predicted value collections have different lengths.
+    #[error("actual value count ({actual}) does not match prediction count ({predicted})")]
+    MismatchedMetricInput {
+        /// Number of actual target values.
+        actual: usize,
+        /// Number of predicted values.
+        predicted: usize,
+    },
+
+    /// An actual target supplied to a metric is NaN or infinite.
+    #[error("actual target at position {index} is not finite")]
+    NonFiniteActualTarget {
+        /// Position of the non-finite target.
+        index: usize,
+    },
+
+    /// A prediction supplied to a metric is NaN or infinite.
+    #[error("prediction at position {index} is not finite")]
+    NonFinitePrediction {
+        /// Position of the non-finite prediction.
+        index: usize,
+    },
+
+    /// R-squared is undefined because every actual target is identical.
+    #[error("R-squared is undefined when all actual targets are constant")]
+    ConstantTargets,
+
+    /// A metric computation overflowed or otherwise produced a non-finite result.
+    #[error("metric {metric} produced a non-finite result")]
+    NonFiniteMetricResult {
+        /// Name of the metric that failed.
+        metric: &'static str,
+    },
+
     /// An operation requires more observations than were supplied.
     #[error("at least {required} samples are required, but only {actual} were supplied")]
     InsufficientSamples {

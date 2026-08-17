@@ -13,6 +13,7 @@ The current foundation provides:
 - deterministic categorical label encoding;
 - explicit missing-value imputation;
 - extensible sequential preprocessing pipelines;
+- regression evaluation metrics;
 - optional `serde` and parallel-execution features.
 
 ## Example
