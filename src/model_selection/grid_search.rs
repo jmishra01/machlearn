@@ -1,10 +1,14 @@
 use std::cmp::Ordering;
 
 use ndarray::{Array1, ArrayView1, ArrayView2};
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
+#[cfg(feature = "parallel")]
+use super::cross_validation::cross_validate_parallel_with_scorer;
 use super::{
     CrossValidationScores, Fold, ParameterGrid, ParameterSet,
-    cross_validation::cross_validate_with_scorer,
+    cross_validation::{cross_validate_with_scorer, validate_folds},
 };
 use crate::core::{Dataset, Fit, Predict, Result};
 
@@ -128,6 +132,7 @@ where
     for<'actual, 'predicted> Scorer:
         Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
 {
+    validate_folds(folds, dataset.n_samples())?;
     let parameter_sets = grid.combinations()?;
     let mut evaluated = Vec::new();
     evaluated
@@ -139,6 +144,58 @@ where
         evaluated.push((candidate_index, parameters, fold_scores));
     }
 
+    rank_evaluated(evaluated, direction)
+}
+
+/// Evaluates parameter assignments and their folds in parallel.
+///
+/// This is the parallel counterpart to [`grid_search`]. Ranked entries, fold
+/// scores, tie-breaking, and errors retain deterministic grid and fold order.
+///
+/// # Errors
+///
+/// Returns the same errors as [`grid_search`].
+#[cfg(feature = "parallel")]
+pub fn grid_search_parallel<Target, Factory, Estimator, Model, Prediction, Scorer>(
+    grid: &ParameterGrid,
+    estimator_factory: Factory,
+    dataset: &Dataset<Target>,
+    folds: &[Fold],
+    scorer: Scorer,
+    direction: ScoreDirection,
+) -> Result<GridSearchResult>
+where
+    Target: Clone + Sync,
+    Factory: Fn(&ParameterSet) -> Result<Estimator> + Sync,
+    Estimator: Sync,
+    Scorer: Sync,
+    for<'dataset> Estimator: Fit<&'dataset Dataset<Target>, (), Fitted = Model>,
+    for<'features> Model: Predict<ArrayView2<'features, f64>, Output = Array1<Prediction>>,
+    for<'actual, 'predicted> Scorer:
+        Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
+{
+    validate_folds(folds, dataset.n_samples())?;
+    let parameter_sets = grid.combinations()?;
+    let results: Vec<_> = parameter_sets
+        .into_par_iter()
+        .enumerate()
+        .map(|(candidate_index, parameters)| {
+            let estimator = estimator_factory(&parameters)?;
+            let fold_scores =
+                cross_validate_parallel_with_scorer(&estimator, dataset, folds, &scorer)?;
+            Ok((candidate_index, parameters, fold_scores))
+        })
+        .collect();
+    let evaluated = results.into_iter().collect::<Result<Vec<_>>>()?;
+    rank_evaluated(evaluated, direction)
+}
+
+type EvaluatedCandidate = (usize, ParameterSet, CrossValidationScores);
+
+fn rank_evaluated(
+    mut evaluated: Vec<EvaluatedCandidate>,
+    direction: ScoreDirection,
+) -> Result<GridSearchResult> {
     evaluated.sort_by(|left, right| {
         compare_scores(direction, left.2.mean(), right.2.mean()).then_with(|| left.0.cmp(&right.0))
     });

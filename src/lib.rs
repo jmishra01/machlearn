@@ -25,6 +25,8 @@ pub use crate::model_selection::{
     ParameterSet, ParameterValue, ScoreDirection, SplitOptions, StratifiedKFold, cross_validate,
     grid_search, train_test_split,
 };
+#[cfg(feature = "parallel")]
+pub use crate::model_selection::{cross_validate_parallel, grid_search_parallel};
 pub use crate::preprocessing::{
     FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,
     FittedStandardScaler, FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler,

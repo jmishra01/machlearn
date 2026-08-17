@@ -1,4 +1,6 @@
 use ndarray::{Array1, ArrayView1, ArrayView2, Axis};
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 
 use super::Fold;
 use crate::core::{Dataset, Fit, MlError, Predict, Result};
@@ -68,6 +70,33 @@ where
     cross_validate_with_scorer(estimator, dataset, folds, &scorer)
 }
 
+/// Fits and scores an estimator across folds in parallel.
+///
+/// This is the parallel counterpart to [`cross_validate`]. Fold scores and
+/// errors retain input-fold order regardless of execution order.
+///
+/// # Errors
+///
+/// Returns the same errors as [`cross_validate`].
+#[cfg(feature = "parallel")]
+pub fn cross_validate_parallel<Target, Estimator, Model, Prediction, Scorer>(
+    estimator: &Estimator,
+    dataset: &Dataset<Target>,
+    folds: &[Fold],
+    scorer: Scorer,
+) -> Result<CrossValidationScores>
+where
+    Target: Clone + Sync,
+    Estimator: Sync,
+    Scorer: Sync,
+    for<'dataset> Estimator: Fit<&'dataset Dataset<Target>, (), Fitted = Model>,
+    for<'features> Model: Predict<ArrayView2<'features, f64>, Output = Array1<Prediction>>,
+    for<'actual, 'predicted> Scorer:
+        Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
+{
+    cross_validate_parallel_with_scorer(estimator, dataset, folds, &scorer)
+}
+
 pub(super) fn cross_validate_with_scorer<Target, Estimator, Model, Prediction, Scorer>(
     estimator: &Estimator,
     dataset: &Dataset<Target>,
@@ -81,28 +110,55 @@ where
     for<'actual, 'predicted> Scorer:
         Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
 {
+    validate_folds(folds, dataset.n_samples())?;
+
+    let mut fold_scores = Vec::with_capacity(folds.len());
+    for (fold_index, fold) in folds.iter().enumerate() {
+        fold_scores.push(evaluate_fold(estimator, dataset, fold, fold_index, scorer)?);
+    }
+    Ok(CrossValidationScores {
+        scores: fold_scores,
+    })
+}
+
+#[cfg(feature = "parallel")]
+pub(super) fn cross_validate_parallel_with_scorer<Target, Estimator, Model, Prediction, Scorer>(
+    estimator: &Estimator,
+    dataset: &Dataset<Target>,
+    folds: &[Fold],
+    scorer: &Scorer,
+) -> Result<CrossValidationScores>
+where
+    Target: Clone + Sync,
+    Estimator: Sync,
+    Scorer: Sync,
+    for<'dataset> Estimator: Fit<&'dataset Dataset<Target>, (), Fitted = Model>,
+    for<'features> Model: Predict<ArrayView2<'features, f64>, Output = Array1<Prediction>>,
+    for<'actual, 'predicted> Scorer:
+        Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
+{
+    validate_folds(folds, dataset.n_samples())?;
+    let results: Vec<_> = folds
+        .par_iter()
+        .enumerate()
+        .map(|(fold_index, fold)| evaluate_fold(estimator, dataset, fold, fold_index, scorer))
+        .collect();
+    let fold_scores = results.into_iter().collect::<Result<Vec<_>>>()?;
+    Ok(CrossValidationScores {
+        scores: fold_scores,
+    })
+}
+
+pub(super) fn validate_folds(folds: &[Fold], n_samples: usize) -> Result<()> {
     if folds.len() < 2 {
         return Err(MlError::InvalidFoldCount {
             n_splits: folds.len(),
         });
     }
-
-    let mut fold_scores = Vec::with_capacity(folds.len());
     for (fold_index, fold) in folds.iter().enumerate() {
-        validate_fold(fold, fold_index, dataset.n_samples())?;
-        let training = select(dataset, fold.train_indices())?;
-        let testing = select(dataset, fold.test_indices())?;
-        let model = estimator.fit(&training, ())?;
-        let predictions = model.predict(testing.records())?;
-        let score = scorer(testing.targets(), predictions.view())?;
-        if !score.is_finite() {
-            return Err(MlError::NonFiniteCrossValidationScore { fold_index });
-        }
-        fold_scores.push(score);
+        validate_fold(fold, fold_index, n_samples)?;
     }
-    Ok(CrossValidationScores {
-        scores: fold_scores,
-    })
+    Ok(())
 }
 
 fn validate_fold(fold: &Fold, fold_index: usize, n_samples: usize) -> Result<()> {
@@ -124,6 +180,31 @@ fn validate_fold(fold: &Fold, fold_index: usize, n_samples: usize) -> Result<()>
         *was_observed = true;
     }
     Ok(())
+}
+
+fn evaluate_fold<Target, Estimator, Model, Prediction, Scorer>(
+    estimator: &Estimator,
+    dataset: &Dataset<Target>,
+    fold: &Fold,
+    fold_index: usize,
+    scorer: &Scorer,
+) -> Result<f64>
+where
+    Target: Clone,
+    for<'dataset> Estimator: Fit<&'dataset Dataset<Target>, (), Fitted = Model>,
+    for<'features> Model: Predict<ArrayView2<'features, f64>, Output = Array1<Prediction>>,
+    for<'actual, 'predicted> Scorer:
+        Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
+{
+    let training = select(dataset, fold.train_indices())?;
+    let testing = select(dataset, fold.test_indices())?;
+    let model = estimator.fit(&training, ())?;
+    let predictions = model.predict(testing.records())?;
+    let score = scorer(testing.targets(), predictions.view())?;
+    if !score.is_finite() {
+        return Err(MlError::NonFiniteCrossValidationScore { fold_index });
+    }
+    Ok(score)
 }
 
 fn select<Target: Clone>(dataset: &Dataset<Target>, indices: &[usize]) -> Result<Dataset<Target>> {

@@ -46,7 +46,7 @@ Status markers:
 - [x] Cross-validation scoring
 - [x] Parameter grid representation
 - [x] Grid search
-- [ ] Optional parallel fold and parameter evaluation
+- [x] Optional parallel fold and parameter evaluation
 
 ## 5. Linear models
 
@@ -93,12 +93,11 @@ Status markers:
 
 ## Current milestone exit criteria
 
-The model-selection milestone is complete when:
+The linear-model milestone is complete when:
 
-- K-fold partitions cover every observation exactly once as test data;
-- stratified folds preserve class balance where possible;
-- seeded shuffled folds are reproducible;
-- cross-validation fits preprocessing and models independently per fold;
-- grid search reports deterministic parameter rankings;
-- parallel and sequential evaluation produce equivalent results;
+- `faer` is isolated behind an internal numerical-solver module;
+- ordinary least-squares and ridge regression match reference solutions;
+- binary and multiclass logistic regression expose stable probability predictions;
+- iterative solvers report convergence and honor stopping criteria;
+- fitted models reject incompatible or non-finite prediction inputs;
 - strict Clippy, default-feature tests, and all-feature tests pass.

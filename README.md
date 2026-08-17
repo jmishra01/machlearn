@@ -20,7 +20,7 @@ The current foundation provides:
 - independent per-fold cross-validation scoring;
 - deterministic hyperparameter-grid expansion;
 - deterministic cross-validated grid search and ranking;
-- optional `serde` and parallel-execution features.
+- optional `serde` and deterministic Rayon model-selection features.
 
 ## Example
 
