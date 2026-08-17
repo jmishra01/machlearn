@@ -21,8 +21,9 @@ pub use crate::metrics::{
     r2_score, recall_score, recall_score_with_options, roc_auc_score, root_mean_squared_error,
 };
 pub use crate::model_selection::{
-    CrossValidationScores, Fold, KFold, ParameterGrid, ParameterSet, ParameterValue, SplitOptions,
-    StratifiedKFold, cross_validate, train_test_split,
+    CrossValidationScores, Fold, GridSearchEntry, GridSearchResult, KFold, ParameterGrid,
+    ParameterSet, ParameterValue, ScoreDirection, SplitOptions, StratifiedKFold, cross_validate,
+    grid_search, train_test_split,
 };
 pub use crate::preprocessing::{
     FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,

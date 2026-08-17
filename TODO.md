@@ -45,7 +45,7 @@ Status markers:
 - [x] Stratified K-fold cross-validation
 - [x] Cross-validation scoring
 - [x] Parameter grid representation
-- [ ] Grid search
+- [x] Grid search
 - [ ] Optional parallel fold and parameter evaluation
 
 ## 5. Linear models

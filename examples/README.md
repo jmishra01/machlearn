@@ -19,6 +19,7 @@ root.
 | `stratified_k_fold`      | Class-balanced ordered or shuffled folds               | `cargo run --example stratified_k_fold`                    |
 | `cross_validation`       | Independent per-fold model fitting and scoring          | `cargo run --example cross_validation`                     |
 | `parameter_grid`         | Deterministic hyperparameter Cartesian products          | `cargo run --example parameter_grid`                       |
+| `grid_search`            | Cross-validated hyperparameter ranking                    | `cargo run --example grid_search`                          |
 | `custom_model`           | Implementing the `Fit` and `Predict` traits           | `cargo run --example custom_model`                         |
 | `serde_model`            | Serializing a fitted transformer                      | `cargo run --example serde_model --features serde`         |
 | `parallel_batches`       | Transforming independent batches with Rayon           | `cargo run --example parallel_batches --features parallel` |

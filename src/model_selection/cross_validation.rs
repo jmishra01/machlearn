@@ -22,7 +22,7 @@ impl CrossValidationScores {
     pub fn mean(&self) -> f64 {
         #[allow(clippy::cast_precision_loss)]
         let count = self.scores.len() as f64;
-        self.scores.iter().sum::<f64>() / count
+        self.scores.iter().map(|score| score / count).sum()
     }
 
     /// Returns the population standard deviation of the fold scores.
@@ -57,6 +57,22 @@ pub fn cross_validate<Target, Estimator, Model, Prediction, Scorer>(
     dataset: &Dataset<Target>,
     folds: &[Fold],
     scorer: Scorer,
+) -> Result<CrossValidationScores>
+where
+    Target: Clone,
+    for<'dataset> Estimator: Fit<&'dataset Dataset<Target>, (), Fitted = Model>,
+    for<'features> Model: Predict<ArrayView2<'features, f64>, Output = Array1<Prediction>>,
+    for<'actual, 'predicted> Scorer:
+        Fn(ArrayView1<'actual, Target>, ArrayView1<'predicted, Prediction>) -> Result<f64>,
+{
+    cross_validate_with_scorer(estimator, dataset, folds, &scorer)
+}
+
+pub(super) fn cross_validate_with_scorer<Target, Estimator, Model, Prediction, Scorer>(
+    estimator: &Estimator,
+    dataset: &Dataset<Target>,
+    folds: &[Fold],
+    scorer: &Scorer,
 ) -> Result<CrossValidationScores>
 where
     Target: Clone,
