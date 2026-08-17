@@ -13,7 +13,7 @@ root.
 | `simple_imputer`   | Explicit mean/median/constant imputation     | `cargo run --example simple_imputer`                       |
 | `pipeline`         | Ordered fitting without data leakage        | `cargo run --example pipeline`                             |
 | `regression_metrics` | MSE, RMSE, MAE, and R-squared              | `cargo run --example regression_metrics`                   |
-| `classification_metrics` | Accuracy and a deterministic confusion matrix | `cargo run --example classification_metrics`          |
+| `classification_metrics` | Accuracy, confusion matrix, precision, recall, and F1 | `cargo run --example classification_metrics`     |
 | `custom_model`     | Implementing the `Fit` and `Predict` traits | `cargo run --example custom_model`                         |
 | `serde_model`      | Serializing a fitted transformer            | `cargo run --example serde_model --features serde`         |
 | `parallel_batches` | Transforming independent batches with Rayon | `cargo run --example parallel_batches --features parallel` |

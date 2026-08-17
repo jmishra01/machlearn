@@ -1,5 +1,10 @@
 mod classification;
 mod regression;
 
-pub use classification::{ConfusionMatrix, accuracy_score, confusion_matrix};
+pub use classification::{
+    Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
+    ZeroDivision, accuracy_score, classification_report, classification_report_with_zero_division,
+    confusion_matrix, f1_score, f1_score_with_options, precision_score,
+    precision_score_with_options, recall_score, recall_score_with_options,
+};
 pub use regression::{mean_absolute_error, mean_squared_error, r2_score, root_mean_squared_error};

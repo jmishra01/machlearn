@@ -143,6 +143,15 @@ pub enum MlError {
         metric: &'static str,
     },
 
+    /// A per-class classification metric has a zero denominator.
+    #[error("metric {metric} is undefined for class index {class_index}")]
+    UndefinedClassificationMetric {
+        /// Name of the undefined metric.
+        metric: &'static str,
+        /// Index in the sorted class list.
+        class_index: usize,
+    },
+
     /// An operation requires more observations than were supplied.
     #[error("at least {required} samples are required, but only {actual} were supplied")]
     InsufficientSamples {

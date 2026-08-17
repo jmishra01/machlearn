@@ -35,7 +35,7 @@ Status markers:
 - [x] Mean squared error, root mean squared error, and mean absolute error
 - [x] R-squared score
 - [x] Accuracy and confusion matrix
-- [ ] Precision, recall, and F1 score
+- [x] Precision, recall, and F1 score
 - [ ] Binary log loss and ROC AUC
 - [ ] Define behavior for empty inputs, zero divisions, and invalid probabilities
 
