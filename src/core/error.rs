@@ -261,6 +261,13 @@ pub enum MlError {
     /// A regularization strength is negative, NaN, or infinite.
     #[error("regularization strength must be finite and non-negative; received {0}")]
     InvalidRegularization(f64),
+
+    /// An iterative optimizer exhausted its iteration budget.
+    #[error("optimization did not converge after {iterations} iterations")]
+    OptimizationDidNotConverge {
+        /// Number of iterations completed before stopping.
+        iterations: usize,
+    },
 }
 
 /// Result type returned by `MachLearn` operations.

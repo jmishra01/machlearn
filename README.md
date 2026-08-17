@@ -25,7 +25,8 @@ The current foundation provides:
 - deterministic cross-validated grid search and ranking;
 - optional `serde` and deterministic Rayon model-selection features;
 - ordinary least-squares linear regression backed by column-pivoted QR;
-- L2-regularized ridge regression with an unpenalized intercept.
+- L2-regularized ridge regression with an unpenalized intercept;
+- binary logistic regression with deterministic classes and probabilities.
 
 ## Example
 
