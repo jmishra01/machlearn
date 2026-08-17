@@ -4,6 +4,9 @@ MachLearn is an early-stage, CPU-first machine-learning library written in
 Rust. The initial goal is a dependable classical machine-learning API for
 dense tabular data.
 
+Dense numerical solvers are isolated behind an internal `faer` backend; public
+data and estimator APIs remain based on `ndarray` and MachLearn types.
+
 The current foundation provides:
 
 - a validated `Dataset` type backed by `ndarray`;

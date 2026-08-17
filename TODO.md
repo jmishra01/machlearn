@@ -50,7 +50,7 @@ Status markers:
 
 ## 5. Linear models
 
-- [ ] Add `faer` as the internal numerical solver backend
+- [x] Add `faer` as the internal numerical solver backend
 - [ ] Ordinary least-squares regression using QR or SVD
 - [ ] Ridge regression
 - [ ] Binary logistic regression

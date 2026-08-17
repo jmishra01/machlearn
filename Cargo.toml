@@ -8,10 +8,11 @@ publish = false
 
 [features]
 default = []
-parallel = ["dep:rayon", "ndarray/rayon"]
+parallel = ["dep:rayon", "ndarray/rayon", "faer/rayon"]
 serde = ["dep:serde", "ndarray/serde"]
 
 [dependencies]
+faer = { version = "0.24.4", default-features = false, features = ["linalg", "std"] }
 ndarray = "0.17"
 rand = "0.10"
 rand_chacha = "0.10"

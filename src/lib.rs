@@ -3,6 +3,8 @@
 // formatting for every occurrence makes the README less natural to read.
 #![allow(clippy::doc_markdown)]
 
+mod solver;
+
 /// Fundamental data structures and traits.
 pub mod core;
 /// Regression and, later, classification evaluation metrics.

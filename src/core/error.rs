@@ -239,6 +239,24 @@ pub enum MlError {
     /// A parameter grid has too many combinations to represent.
     #[error("parameter grid is too large to expand")]
     ParameterGridTooLarge,
+
+    /// A linear-model design matrix does not have full column rank.
+    #[error(
+        "design matrix has numerical rank {rank}, but {feature_count} independent columns are required"
+    )]
+    RankDeficientDesign {
+        /// Estimated numerical matrix rank.
+        rank: usize,
+        /// Number of design-matrix columns.
+        feature_count: usize,
+    },
+
+    /// A numerical solver produced NaN or infinity.
+    #[error("linear solver produced a non-finite coefficient at position {index}")]
+    NonFiniteSolverOutput {
+        /// Position of the invalid coefficient.
+        index: usize,
+    },
 }
 
 /// Result type returned by `MachLearn` operations.
