@@ -18,6 +18,7 @@ The current foundation provides:
 - deterministic balanced K-fold partitioning;
 - deterministic stratified K-fold partitioning;
 - independent per-fold cross-validation scoring;
+- deterministic hyperparameter-grid expansion;
 - optional `serde` and parallel-execution features.
 
 ## Example

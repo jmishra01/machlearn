@@ -208,6 +208,37 @@ pub enum MlError {
         /// Zero-based position of the affected fold.
         fold_index: usize,
     },
+
+    /// A parameter name is empty or contains only whitespace.
+    #[error("parameter names must not be empty or contain only whitespace")]
+    InvalidParameterName,
+
+    /// A parameter name occurs more than once in a grid.
+    #[error("parameter '{name}' already exists in the grid")]
+    DuplicateParameter {
+        /// Repeated parameter name.
+        name: String,
+    },
+
+    /// A grid parameter has no candidate values.
+    #[error("parameter '{name}' must contain at least one candidate value")]
+    EmptyParameterValues {
+        /// Parameter without candidates.
+        name: String,
+    },
+
+    /// A floating-point parameter candidate is NaN or infinity.
+    #[error("floating-point candidate {value_index} for parameter '{name}' is not finite")]
+    NonFiniteParameterValue {
+        /// Parameter containing the invalid candidate.
+        name: String,
+        /// Zero-based position of the invalid candidate.
+        value_index: usize,
+    },
+
+    /// A parameter grid has too many combinations to represent.
+    #[error("parameter grid is too large to expand")]
+    ParameterGridTooLarge,
 }
 
 /// Result type returned by `MachLearn` operations.
