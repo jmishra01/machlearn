@@ -14,7 +14,8 @@ pub mod preprocessing;
 
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
 pub use crate::metrics::{
-    mean_absolute_error, mean_squared_error, r2_score, root_mean_squared_error,
+    ConfusionMatrix, accuracy_score, confusion_matrix, mean_absolute_error, mean_squared_error,
+    r2_score, root_mean_squared_error,
 };
 pub use crate::model_selection::{SplitOptions, train_test_split};
 pub use crate::preprocessing::{
