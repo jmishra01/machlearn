@@ -17,6 +17,7 @@ The current foundation provides:
 - binary probability metrics with strict probability validation;
 - deterministic balanced K-fold partitioning;
 - deterministic stratified K-fold partitioning;
+- independent per-fold cross-validation scoring;
 - optional `serde` and parallel-execution features.
 
 ## Example

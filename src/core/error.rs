@@ -194,6 +194,20 @@ pub enum MlError {
         /// Invalid number of requested folds.
         n_splits: usize,
     },
+
+    /// A cross-validation fold is not a complete, disjoint dataset partition.
+    #[error("cross-validation fold {fold_index} is not a valid dataset partition")]
+    InvalidFoldPartition {
+        /// Zero-based position of the invalid fold.
+        fold_index: usize,
+    },
+
+    /// A cross-validation scorer returned NaN or infinity.
+    #[error("cross-validation scorer returned a non-finite value for fold {fold_index}")]
+    NonFiniteCrossValidationScore {
+        /// Zero-based position of the affected fold.
+        fold_index: usize,
+    },
 }
 
 /// Result type returned by `MachLearn` operations.
