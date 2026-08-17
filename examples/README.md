@@ -22,6 +22,7 @@ root.
 | `grid_search`            | Cross-validated hyperparameter ranking                    | `cargo run --example grid_search`                          |
 | `parallel_cross_validation` | Concurrent deterministic fold scoring                 | `cargo run --example parallel_cross_validation --features parallel` |
 | `parallel_grid_search`   | Concurrent deterministic grid and fold evaluation         | `cargo run --example parallel_grid_search --features parallel` |
+| `linear_regression`      | Ordinary least-squares fitting and prediction            | `cargo run --example linear_regression`                    |
 | `custom_model`           | Implementing the `Fit` and `Predict` traits           | `cargo run --example custom_model`                         |
 | `serde_model`            | Serializing a fitted transformer                      | `cargo run --example serde_model --features serde`         |
 | `parallel_batches`       | Transforming independent batches with Rayon           | `cargo run --example parallel_batches --features parallel` |

@@ -14,7 +14,6 @@ use crate::core::{MlError, Result, validate_features};
 
 /// Solves an overdetermined, full-column-rank least-squares system with
 /// column-pivoted QR decomposition.
-#[allow(dead_code)] // Used by the ordinary least-squares milestone that follows.
 pub(crate) fn solve_least_squares(
     design: ArrayView2<'_, f64>,
     targets: ArrayView1<'_, f64>,

@@ -24,6 +24,7 @@ The current foundation provides:
 - deterministic hyperparameter-grid expansion;
 - deterministic cross-validated grid search and ranking;
 - optional `serde` and deterministic Rayon model-selection features.
+- ordinary least-squares linear regression backed by column-pivoted QR;
 
 ## Example
 
