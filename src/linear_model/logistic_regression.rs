@@ -6,7 +6,7 @@ use ndarray::{Array1, Array2, ArrayView2};
 
 use crate::{
     core::{Dataset, Fit, MlError, Predict, Result, validate_features},
-    linear_model::common::predict_linear,
+    linear_model::common::{predict_linear, sigmoid},
     solver::solve_least_squares,
 };
 
@@ -276,7 +276,7 @@ where
     Ok(classes)
 }
 
-fn fit_parameters(
+pub(super) fn fit_parameters(
     records: ArrayView2<'_, f64>,
     encoded: &Array1<usize>,
     fit_intercept: bool,
@@ -349,27 +349,18 @@ fn fit_parameters(
     })
 }
 
-fn validate_alpha(alpha: f64) -> Result<()> {
+pub(super) fn validate_alpha(alpha: f64) -> Result<()> {
     if !alpha.is_finite() || alpha < 0.0 {
         return Err(MlError::InvalidRegularization(alpha));
     }
     Ok(())
 }
 
-fn sigmoid(score: f64) -> f64 {
-    if score >= 0.0 {
-        1.0 / (1.0 + (-score).exp())
-    } else {
-        let exponential = score.exp();
-        exponential / (1.0 + exponential)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use approx::assert_abs_diff_eq;
 
-    use super::sigmoid;
+    use crate::linear_model::common::sigmoid;
 
     #[test]
     fn sigmoid_is_stable_for_extreme_scores() {

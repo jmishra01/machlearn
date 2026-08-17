@@ -26,7 +26,8 @@ The current foundation provides:
 - optional `serde` and deterministic Rayon model-selection features;
 - ordinary least-squares linear regression backed by column-pivoted QR;
 - L2-regularized ridge regression with an unpenalized intercept;
-- binary logistic regression with deterministic classes and probabilities.
+- binary logistic regression with deterministic classes and probabilities;
+- one-vs-rest multiclass logistic regression with normalized probabilities.
 
 ## Example
 

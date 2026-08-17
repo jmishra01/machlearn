@@ -24,3 +24,20 @@ pub(super) fn predict_linear(
     }
     Ok(predictions)
 }
+
+pub(super) fn sigmoid(score: f64) -> f64 {
+    if score >= 0.0 {
+        1.0 / (1.0 + (-score).exp())
+    } else {
+        let exponential = score.exp();
+        exponential / (1.0 + exponential)
+    }
+}
+
+pub(super) fn log_sigmoid(score: f64) -> f64 {
+    if score >= 0.0 {
+        -(-score).exp().ln_1p()
+    } else {
+        score - score.exp().ln_1p()
+    }
+}

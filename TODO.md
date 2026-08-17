@@ -54,7 +54,7 @@ Status markers:
 - [x] Ordinary least-squares regression using QR or SVD
 - [x] Ridge regression
 - [x] Binary logistic regression
-- [ ] Multiclass logistic regression
+- [x] Multiclass logistic regression
 - [ ] Convergence reports and configurable stopping criteria
 
 ## 6. Additional supervised models

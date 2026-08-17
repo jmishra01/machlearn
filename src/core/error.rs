@@ -175,6 +175,15 @@ pub enum MlError {
         class_count: usize,
     },
 
+    /// A multiclass estimator received fewer than three target classes.
+    #[error(
+        "a multiclass estimator requires at least three observed classes; received {class_count}"
+    )]
+    ExpectedMulticlassTargets {
+        /// Number of distinct observed target classes.
+        class_count: usize,
+    },
+
     /// The requested positive label does not occur in the actual targets.
     #[error("the requested positive label was not found in the actual targets")]
     PositiveLabelNotFound,
