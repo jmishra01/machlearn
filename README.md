@@ -15,6 +15,7 @@ The current foundation provides:
 - extensible sequential preprocessing pipelines;
 - regression and classification evaluation metrics;
 - binary probability metrics with strict probability validation;
+- deterministic balanced K-fold partitioning;
 - optional `serde` and parallel-execution features.
 
 ## Example

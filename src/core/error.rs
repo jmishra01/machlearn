@@ -187,6 +187,13 @@ pub enum MlError {
         /// Actual sample count.
         actual: usize,
     },
+
+    /// A cross-validation configuration requests fewer than two folds.
+    #[error("cross-validation requires at least two folds; received {n_splits}")]
+    InvalidFoldCount {
+        /// Invalid number of requested folds.
+        n_splits: usize,
+    },
 }
 
 /// Result type returned by `MachLearn` operations.
