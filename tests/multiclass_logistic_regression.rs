@@ -27,6 +27,106 @@ fn three_class_dataset() -> Dataset<&'static str> {
 }
 
 #[test]
+fn matches_a_reference_solution() {
+    // Reference values confirmed against `sklearn.multiclass.OneVsRestClassifier`
+    // wrapping `sklearn.linear_model.LogisticRegression(C=1.0, tol=1e-12,
+    // max_iter=10000)` fitted on the same data. `C = 1 / alpha` at `alpha =
+    // 1.0`, matching this crate's default regularization strength.
+    let dataset = Dataset::new(
+        array![
+            [-3.0, 0.0],
+            [-2.0, 0.5],
+            [3.0, 0.0],
+            [2.0, 0.5],
+            [0.0, 3.0],
+            [0.5, 2.0],
+        ],
+        array!["amber", "amber", "blue", "blue", "cyan", "cyan"],
+    )
+    .unwrap();
+
+    let model = MulticlassLogisticRegression::new().fit(&dataset).unwrap();
+
+    assert_abs_diff_eq!(
+        model.coefficients()[[0, 0]],
+        -0.985_550_636_950_342_2,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.coefficients()[[0, 1]],
+        -0.491_375_503_124_198_5,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.coefficients()[[1, 0]],
+        0.950_683_190_156_297_9,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.coefficients()[[1, 1]],
+        -0.566_198_148_506_178_1,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.coefficients()[[2, 0]],
+        0.052_038_625_470_692_5,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.coefficients()[[2, 1]],
+        1.192_090_913_243_086_1,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.intercepts()[0],
+        -0.555_433_929_100_422_6,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.intercepts()[1],
+        -0.666_396_380_425_123_3,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        model.intercepts()[2],
+        -2.072_723_727_489_041_8,
+        epsilon = 1.0e-6
+    );
+
+    let query = array![[-2.5, 0.0], [2.5, 0.0], [0.0, 2.5]];
+    let probabilities = model.predict_probabilities(query.view()).unwrap();
+    assert_abs_diff_eq!(
+        probabilities[[0, 0]],
+        0.857_250_062_332_900_5,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        probabilities[[0, 1]],
+        0.044_805_599_130_777_5,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        probabilities[[0, 2]],
+        0.097_944_338_536_322,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        probabilities[[1, 1]],
+        0.831_251_423_564_473_8,
+        epsilon = 1.0e-6
+    );
+    assert_abs_diff_eq!(
+        probabilities[[2, 2]],
+        0.736_663_401_548_867,
+        epsilon = 1.0e-6
+    );
+    assert_eq!(
+        model.predict(query.view()).unwrap(),
+        array!["amber", "blue", "cyan"]
+    );
+}
+
+#[test]
 fn learns_sorted_classes_and_parameter_shapes() {
     let dataset = three_class_dataset();
 

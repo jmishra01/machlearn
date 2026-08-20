@@ -27,7 +27,15 @@ The current foundation provides:
 - ordinary least-squares linear regression backed by column-pivoted QR;
 - L2-regularized ridge regression with an unpenalized intercept;
 - binary logistic regression with deterministic classes and probabilities;
-- one-vs-rest multiclass logistic regression with normalized probabilities.
+- one-vs-rest multiclass logistic regression with normalized probabilities;
+- configurable convergence reporting and stopping criteria for iterative solvers;
+- k-nearest-neighbors classification and regression with uniform or distance weighting;
+- Gaussian Naive Bayes classification with configurable variance smoothing;
+- CART-style decision-tree classification and regression with feature importances;
+- bootstrap-aggregated random forests with per-split feature subsampling;
+- k-means clustering with k-means++ or random initialization;
+- principal component analysis with explained-variance reporting;
+- a versioned model-serialization envelope, and optional CSV dataset loading.
 
 ## Example
 
@@ -57,6 +65,19 @@ cargo clippy --all-targets --all-features -- -D warnings
 cargo fmt --check
 ```
 
+Property-based tests for cross-cutting numerical invariants (scaler
+centering, split completeness, metric bounds, PCA orthonormality, and more)
+live in `tests/property_invariants.rs`.
+
+Benchmarks for representative fit/predict paths live in `benches/estimators.rs`:
+
+```text
+cargo bench
+cargo bench -- --save-baseline before
+# ...make a change...
+cargo bench -- --baseline before
+```
+
 The crate is not yet published. Its public API may change while the first
 algorithms and pipelines are being implemented.
 
@@ -71,11 +92,17 @@ constant imputation strategies are available.
 
 ## More examples
 
-Runnable examples for datasets, splitting, preprocessing, custom models,
-serialization, and parallel batches are indexed in `examples/README.md`.
+Runnable examples for datasets, splitting, preprocessing, every estimator,
+custom models, serialization, CSV loading, and parallel batches are indexed
+in `examples/README.md`.
 
 ```text
 cargo run --example dataset
 cargo run --example standard_scaler
 cargo test --examples --all-features
 ```
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or
+[MIT license](LICENSE-MIT) at your option.

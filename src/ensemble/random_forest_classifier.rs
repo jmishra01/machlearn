@@ -196,8 +196,10 @@ impl RandomForestClassifier {
                 .map(|label| classes.binary_search(label).unwrap_or(0)),
         );
 
-        let impurity = |rows: &[usize]| gini_impurity(&encoded, n_classes, rows);
-        let make_leaf = |rows: &[usize]| leaf_probabilities(&encoded, n_classes, rows);
+        let weights = Array1::from_elem(n_samples, 1.0);
+        let impurity = |rows: &[usize]| gini_impurity(&encoded, n_classes, weights.view(), rows);
+        let make_leaf =
+            |rows: &[usize]| leaf_probabilities(&encoded, n_classes, weights.view(), rows);
         let limits = GrowthLimits {
             max_depth: self.max_depth,
             min_samples_split: self.min_samples_split,
@@ -219,6 +221,7 @@ impl RandomForestClassifier {
                 bootstrap_rows,
                 0,
                 &limits,
+                weights.view(),
                 &impurity,
                 &make_leaf,
                 &mut feature_sampler,

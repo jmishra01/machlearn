@@ -329,6 +329,64 @@ pub enum MlError {
         /// Largest supported component count for the training data.
         maximum: usize,
     },
+
+    /// A deserialized `ModelEnvelope` (available under the `serde` feature)
+    /// reports a format version this crate version does not support.
+    #[error(
+        "model envelope version {found} is not supported; this version of MachLearn supports version {supported}"
+    )]
+    UnsupportedEnvelopeVersion {
+        /// Version recorded in the deserialized envelope.
+        found: u32,
+        /// Envelope version this crate version supports.
+        supported: u32,
+    },
+
+    /// Reading or parsing a CSV data source failed.
+    #[error("failed to read CSV data: {0}")]
+    CsvError(String),
+
+    /// An Elastic Net mixing ratio lies outside the closed interval `[0, 1]`.
+    #[error("l1_ratio must be finite and between 0 and 1 inclusive; received {0}")]
+    InvalidL1Ratio(f64),
+
+    /// A boosting learning rate is non-positive, NaN, or infinite.
+    #[error("learning_rate must be finite and positive; received {0}")]
+    InvalidLearningRate(f64),
+
+    /// The first weak learner in an `AdaBoost` ensemble performed no better
+    /// than random guessing, so no ensemble could be built.
+    #[error(
+        "the first weak learner performed no better than random guessing; an AdaBoost ensemble could not be fit"
+    )]
+    WeakLearnerNoBetterThanRandom,
+
+    /// A permutation-importance repeat count is zero.
+    #[error("the number of repeats must be at least one; received {0}")]
+    InvalidRepeatCount(usize),
+
+    /// A feature required to be non-negative (such as a word count) is
+    /// negative.
+    #[error("feature at row {row}, column {column} must be non-negative")]
+    NegativeFeature {
+        /// Zero-based row containing the value.
+        row: usize,
+        /// Zero-based column containing the value.
+        column: usize,
+    },
+
+    /// A Naive Bayes additive-smoothing factor is negative, NaN, or
+    /// infinite.
+    #[error("alpha must be finite and non-negative; received {0}")]
+    InvalidAlpha(f64),
+
+    /// A DBSCAN neighborhood radius is non-positive, NaN, or infinite.
+    #[error("eps must be finite and positive; received {0}")]
+    InvalidEps(f64),
+
+    /// A DBSCAN minimum neighborhood size is zero.
+    #[error("min_samples must be at least one; received {0}")]
+    InvalidMinSamples(usize),
 }
 
 /// Result type returned by `MachLearn` operations.

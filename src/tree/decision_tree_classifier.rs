@@ -2,7 +2,7 @@
 // requiring callers to borrow temporary views.
 #![allow(clippy::needless_pass_by_value)]
 
-use ndarray::{Array1, Array2, ArrayView2};
+use ndarray::{Array1, Array2, ArrayView1, ArrayView2};
 
 use crate::{
     core::{Dataset, Fit, Predict, Result, validate_feature_count, validate_features},
@@ -116,6 +116,34 @@ impl DecisionTreeClassifier {
         validate_min_samples_leaf(self.min_samples_leaf)?;
         validate_features(dataset.records())?;
 
+        let weights = Array1::from_elem(dataset.n_samples(), 1.0);
+        self.fit_weighted(dataset, weights.view())
+    }
+
+    /// Grows a decision tree exactly as [`Self::fit`], but weights each
+    /// training row's contribution to every split's impurity score and to
+    /// its leaf's class distribution by `weights`, rather than treating
+    /// every row equally.
+    ///
+    /// Used internally by ensembles (such as [`crate::AdaBoostClassifier`])
+    /// that must re-fit a tree against per-round sample weights without
+    /// resampling the training data.
+    ///
+    /// # Errors
+    ///
+    /// Returns the same errors as [`Self::fit`].
+    pub(crate) fn fit_weighted<Label>(
+        &self,
+        dataset: &Dataset<Label>,
+        weights: ArrayView1<'_, f64>,
+    ) -> Result<FittedDecisionTreeClassifier<Label>>
+    where
+        Label: Clone + Ord,
+    {
+        validate_min_samples_split(self.min_samples_split)?;
+        validate_min_samples_leaf(self.min_samples_leaf)?;
+        validate_features(dataset.records())?;
+
         let classes = sorted_classes(dataset);
         let n_classes = classes.len();
         let encoded: Array1<usize> = Array1::from_iter(
@@ -125,8 +153,8 @@ impl DecisionTreeClassifier {
                 .map(|label| classes.binary_search(label).unwrap_or(0)),
         );
 
-        let impurity = |rows: &[usize]| gini_impurity(&encoded, n_classes, rows);
-        let make_leaf = |rows: &[usize]| leaf_probabilities(&encoded, n_classes, rows);
+        let impurity = |rows: &[usize]| gini_impurity(&encoded, n_classes, weights, rows);
+        let make_leaf = |rows: &[usize]| leaf_probabilities(&encoded, n_classes, weights, rows);
         let limits = GrowthLimits {
             max_depth: self.max_depth,
             min_samples_split: self.min_samples_split,
@@ -139,6 +167,7 @@ impl DecisionTreeClassifier {
             rows,
             0,
             &limits,
+            weights,
             &impurity,
             &make_leaf,
             &mut feature_sampler,

@@ -21,6 +21,24 @@ fn predicts_the_label_of_the_nearest_training_points() {
 }
 
 #[test]
+fn matches_a_reference_solution() {
+    // Reference predictions confirmed against
+    // `sklearn.neighbors.KNeighborsClassifier(n_neighbors=3)` fitted on the
+    // same data, including its distance-tie resolution at the query `-0.5`
+    // (equidistant between training rows at `-2.0` and `1.0`).
+    let dataset = Dataset::new(
+        array![[-3.0], [-2.0], [-1.0], [1.0], [2.0], [3.0]],
+        array!["no", "no", "no", "yes", "yes", "yes"],
+    )
+    .unwrap();
+    let model = KNeighborsClassifier::new(3).unwrap().fit(&dataset).unwrap();
+
+    let predictions = model.predict(array![[-0.5], [0.5], [2.5]].view()).unwrap();
+
+    assert_eq!(predictions, array!["no", "yes", "yes"]);
+}
+
+#[test]
 fn uniform_voting_breaks_ties_in_favor_of_the_smallest_sorted_label() {
     let dataset = Dataset::new(array![[-1.0], [3.0]], array!["b", "a"]).unwrap();
     let model = KNeighborsClassifier::new(2).unwrap().fit(&dataset).unwrap();

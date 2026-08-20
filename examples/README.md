@@ -24,19 +24,32 @@ root.
 | `parallel_grid_search`   | Concurrent deterministic grid and fold evaluation         | `cargo run --example parallel_grid_search --features parallel` |
 | `linear_regression`      | Ordinary least-squares fitting and prediction            | `cargo run --example linear_regression`                    |
 | `ridge_regression`       | L2-regularized regression with intercept handling        | `cargo run --example ridge_regression`                     |
+| `lasso_regression`       | L1-regularized regression and sparse coefficients        | `cargo run --example lasso_regression`                     |
+| `elastic_net_regression` | Combined L1/L2 regression compared against Lasso         | `cargo run --example elastic_net_regression`                |
 | `logistic_regression`    | Binary classification and class probabilities             | `cargo run --example logistic_regression`                  |
 | `multiclass_logistic_regression` | One-vs-rest classification and normalized probabilities | `cargo run --example multiclass_logistic_regression`    |
+| `linear_discriminant_analysis` | Shared-covariance Gaussian discriminant scores and probabilities | `cargo run --example linear_discriminant_analysis` |
 | `knn_classifier`         | Voting among nearby points with uniform and distance weighting | `cargo run --example knn_classifier`               |
 | `knn_regressor`          | Averaging nearby targets with uniform and distance weighting | `cargo run --example knn_regressor`                  |
 | `gaussian_naive_bayes`   | Per-class Gaussian fitting and normalized probabilities | `cargo run --example gaussian_naive_bayes`               |
+| `multinomial_naive_bayes` | Smoothed count-frequency likelihoods and normalized probabilities | `cargo run --example multinomial_naive_bayes` |
+| `bernoulli_naive_bayes`  | Binarized presence/absence likelihoods and normalized probabilities | `cargo run --example bernoulli_naive_bayes` |
 | `decision_tree_classifier` | Gini-minimizing splits, leaf probabilities, and feature importances | `cargo run --example decision_tree_classifier` |
 | `decision_tree_regressor` | Variance-minimizing splits, depth-limited predictions, and feature importances | `cargo run --example decision_tree_regressor` |
 | `random_forest_classifier` | Bootstrap-aggregated trees, averaged leaf probabilities, and feature importances | `cargo run --example random_forest_classifier` |
 | `random_forest_regressor` | Bootstrap-aggregated trees, averaged predictions, and feature importances | `cargo run --example random_forest_regressor` |
+| `gradient_boosting_regressor` | Sequential residual-fitting trees minimizing squared error | `cargo run --example gradient_boosting_regressor` |
+| `gradient_boosting_classifier` | Sequential residual-fitting trees minimizing log loss | `cargo run --example gradient_boosting_classifier` |
+| `adaboost_classifier`    | Reweighting samples across boosted decision stumps (discrete SAMME) | `cargo run --example adaboost_classifier` |
+| `permutation_importance` | Ranking features by shuffled-column score degradation, for any model | `cargo run --example permutation_importance` |
 | `kmeans`                 | k-means++ initialization, cluster assignment, and inertia | `cargo run --example kmeans`                            |
+| `dbscan`                 | Density-connected clustering with automatic noise detection | `cargo run --example dbscan`                          |
+| `gaussian_mixture`       | Expectation-maximization fitting and soft cluster membership | `cargo run --example gaussian_mixture`               |
 | `pca`                    | Dimensionality reduction and explained-variance reporting | `cargo run --example pca`                               |
 | `custom_model`           | Implementing the `Fit` and `Predict` traits           | `cargo run --example custom_model`                         |
 | `serde_model`            | Serializing a fitted transformer                      | `cargo run --example serde_model --features serde`         |
+| `model_envelope`         | Version-tagging a fitted model before serializing it  | `cargo run --example model_envelope --features serde`      |
+| `csv_dataset`            | Loading a dataset from CSV data                       | `cargo run --example csv_dataset --features csv`            |
 | `parallel_batches`       | Transforming independent batches with Rayon           | `cargo run --example parallel_batches --features parallel` |
 
 Compile every example with every optional feature:

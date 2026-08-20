@@ -110,21 +110,24 @@ struct SplitCandidate {
 /// restricted to splits where both partitions have at least
 /// `min_samples_leaf` rows.
 ///
-/// Ties are resolved in favor of the first candidate feature and, within a
-/// feature, the smallest threshold, making the search deterministic for a
-/// given candidate feature order.
+/// Every row carries the weight recorded at its index in `weights`, which
+/// determines how much each partition's impurity contributes to the split
+/// score; `min_samples_leaf` is always a plain row count, unaffected by
+/// weighting. Ties are resolved in favor of the first candidate feature and,
+/// within a feature, the smallest threshold, making the search deterministic
+/// for a given candidate feature order.
 fn best_split<Impurity>(
     records: ArrayView2<'_, f64>,
     rows: &[usize],
     candidate_features: &[usize],
     min_samples_leaf: usize,
+    weights: ArrayView1<'_, f64>,
     impurity: &Impurity,
 ) -> Option<SplitCandidate>
 where
     Impurity: Fn(&[usize]) -> f64,
 {
-    #[allow(clippy::cast_precision_loss)]
-    let total = rows.len() as f64;
+    let total: f64 = rows.iter().map(|&row| weights[row]).sum();
     let mut best_score = f64::INFINITY;
     let mut best = None;
 
@@ -147,10 +150,10 @@ where
                 continue;
             }
 
-            #[allow(clippy::cast_precision_loss)]
-            let weighted_impurity = (left_rows.len() as f64 * impurity(left_rows)
-                + right_rows.len() as f64 * impurity(right_rows))
-                / total;
+            let left_weight: f64 = left_rows.iter().map(|&row| weights[row]).sum();
+            let right_weight: f64 = right_rows.iter().map(|&row| weights[row]).sum();
+            let weighted_impurity =
+                (left_weight * impurity(left_rows) + right_weight * impurity(right_rows)) / total;
 
             if weighted_impurity < best_score {
                 best_score = weighted_impurity;
@@ -178,11 +181,13 @@ where
 /// Splitting stops when the node is pure (`impurity` is `0`), the sample
 /// count is below `min_samples_split`, the depth budget is exhausted, or no
 /// split respects `min_samples_leaf`.
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn build_tree<Leaf, Impurity, MakeLeaf, FeatureSampler>(
     records: ArrayView2<'_, f64>,
     rows: Vec<usize>,
     depth: usize,
     limits: &GrowthLimits,
+    weights: ArrayView1<'_, f64>,
     impurity: &Impurity,
     make_leaf: &MakeLeaf,
     feature_sampler: &mut FeatureSampler,
@@ -205,6 +210,7 @@ where
             &rows,
             &candidate_features,
             limits.min_samples_leaf,
+            weights,
             impurity,
         ) {
             let left = build_tree(
@@ -212,6 +218,7 @@ where
                 split.left_rows,
                 depth + 1,
                 limits,
+                weights,
                 impurity,
                 make_leaf,
                 feature_sampler,
@@ -221,6 +228,7 @@ where
                 split.right_rows,
                 depth + 1,
                 limits,
+                weights,
                 impurity,
                 make_leaf,
                 feature_sampler,
@@ -253,37 +261,51 @@ pub(crate) fn validate_min_samples_leaf(min_samples_leaf: usize) -> Result<()> {
     Ok(())
 }
 
-/// Gini impurity of the class distribution among `rows`.
-pub(crate) fn gini_impurity(encoded: &Array1<usize>, n_classes: usize, rows: &[usize]) -> f64 {
-    let mut counts = vec![0usize; n_classes];
+/// Gini impurity of the sample-weighted class distribution among `rows`.
+///
+/// Every row carries the weight recorded at its index in `weights`; passing
+/// a uniform weight of one for every row reduces this to plain (unweighted)
+/// Gini impurity.
+pub(crate) fn gini_impurity(
+    encoded: &Array1<usize>,
+    n_classes: usize,
+    weights: ArrayView1<'_, f64>,
+    rows: &[usize],
+) -> f64 {
+    let mut totals = vec![0.0_f64; n_classes];
+    let mut total = 0.0;
     for &row in rows {
-        counts[encoded[row]] += 1;
+        totals[encoded[row]] += weights[row];
+        total += weights[row];
     }
-    #[allow(clippy::cast_precision_loss)]
-    let total = rows.len() as f64;
-    1.0 - counts
+    1.0 - totals
         .iter()
-        .map(|&count| {
-            #[allow(clippy::cast_precision_loss)]
-            let fraction = count as f64 / total;
+        .map(|&weight| {
+            let fraction = weight / total;
             fraction * fraction
         })
         .sum::<f64>()
 }
 
-/// The class-frequency distribution among `rows`, in class-index order.
+/// The sample-weighted class-frequency distribution among `rows`, in
+/// class-index order.
+///
+/// Every row carries the weight recorded at its index in `weights`; passing
+/// a uniform weight of one for every row reduces this to plain (unweighted)
+/// class frequencies.
 pub(crate) fn leaf_probabilities(
     encoded: &Array1<usize>,
     n_classes: usize,
+    weights: ArrayView1<'_, f64>,
     rows: &[usize],
 ) -> Array1<f64> {
-    let mut counts = vec![0.0_f64; n_classes];
+    let mut totals = vec![0.0_f64; n_classes];
+    let mut total = 0.0;
     for &row in rows {
-        counts[encoded[row]] += 1.0;
+        totals[encoded[row]] += weights[row];
+        total += weights[row];
     }
-    #[allow(clippy::cast_precision_loss)]
-    let total = rows.len() as f64;
-    Array1::from_vec(counts.into_iter().map(|count| count / total).collect())
+    Array1::from_vec(totals.into_iter().map(|weight| weight / total).collect())
 }
 
 /// Population variance of the targets at `rows`.

@@ -21,6 +21,35 @@ fn predicts_the_uniform_average_of_the_nearest_targets() {
 }
 
 #[test]
+fn matches_a_reference_solution() {
+    // Reference predictions confirmed against
+    // `sklearn.neighbors.KNeighborsRegressor(n_neighbors=2)` (both `uniform`
+    // and `distance` weights) fitted on the same data.
+    let dataset = Dataset::new(
+        array![[0.0], [1.0], [2.0], [3.0], [4.0]],
+        array![0.0, 1.0, 4.0, 9.0, 16.0],
+    )
+    .unwrap();
+    let query = array![[0.5], [2.5], [3.5]];
+
+    let uniform = KNeighborsRegressor::new(2).unwrap().fit(&dataset).unwrap();
+    let predictions = uniform.predict(query.view()).unwrap();
+    assert_abs_diff_eq!(predictions[0], 0.5, epsilon = 1.0e-12);
+    assert_abs_diff_eq!(predictions[1], 6.5, epsilon = 1.0e-12);
+    assert_abs_diff_eq!(predictions[2], 12.5, epsilon = 1.0e-12);
+
+    let distance = KNeighborsRegressor::new(2)
+        .unwrap()
+        .with_weighting(Weighting::Distance)
+        .fit(&dataset)
+        .unwrap();
+    let distance_predictions = distance.predict(query.view()).unwrap();
+    assert_abs_diff_eq!(distance_predictions[0], 0.5, epsilon = 1.0e-12);
+    assert_abs_diff_eq!(distance_predictions[1], 6.5, epsilon = 1.0e-12);
+    assert_abs_diff_eq!(distance_predictions[2], 12.5, epsilon = 1.0e-12);
+}
+
+#[test]
 fn distance_weighting_favors_the_closer_neighbor_over_a_uniform_average() {
     let dataset = Dataset::new(array![[-1.0], [3.0]], array![10.0, 30.0]).unwrap();
     let query = array![[0.0]];

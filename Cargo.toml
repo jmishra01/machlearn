@@ -4,17 +4,20 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 description = "A small, reliable machine-learning library written in Rust"
+license = "MIT OR Apache-2.0"
 publish = false
 
 [features]
 default = []
+csv = ["dep:csv"]
 parallel = ["dep:rayon", "ndarray/rayon", "faer/rayon"]
 serde = ["dep:serde", "ndarray/serde"]
 
 [dependencies]
+csv = { version = "1", optional = true }
 faer = { version = "0.24.4", default-features = false, features = ["linalg", "std"] }
 ndarray = "0.17"
-rand = "0.10"
+rand = { version = "0.10", default-features = false, features = ["std", "std_rng"] }
 rand_chacha = "0.10"
 rayon = { version = "1.12", optional = true }
 serde = { version = "1", features = ["derive"], optional = true }
@@ -22,8 +25,13 @@ thiserror = "2"
 
 [dev-dependencies]
 approx = "0.5"
+criterion = "0.8"
 proptest = "1.11"
 serde_json = "1"
+
+[[bench]]
+name = "estimators"
+harness = false
 
 [lints.rust]
 missing_docs = "warn"

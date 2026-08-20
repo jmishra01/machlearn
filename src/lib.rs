@@ -11,8 +11,14 @@ pub mod cluster;
 pub mod core;
 /// Dimensionality-reduction estimators.
 pub mod decomposition;
+/// Discriminant-analysis classifiers.
+pub mod discriminant_analysis;
 /// Bagged decision-tree ensembles for classification and regression.
 pub mod ensemble;
+/// Model-agnostic tools for inspecting a fitted estimator's behavior.
+pub mod inspection;
+/// Optional dataset input/output helpers.
+pub mod io;
 /// Linear estimators for regression and, later, classification.
 pub mod linear_model;
 /// Regression and, later, classification evaluation metrics.
@@ -28,17 +34,30 @@ pub mod preprocessing;
 /// Decision-tree estimators for classification and regression.
 pub mod tree;
 
-pub use crate::cluster::{FittedKMeans, KMeans, KMeansInit};
+pub use crate::cluster::{
+    DBSCAN, FittedDBSCAN, FittedGaussianMixture, FittedKMeans, GaussianMixture, KMeans, KMeansInit,
+};
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
+#[cfg(feature = "serde")]
+pub use crate::core::{ENVELOPE_VERSION, ModelEnvelope};
 pub use crate::decomposition::{FittedPrincipalComponentAnalysis, PrincipalComponentAnalysis};
+pub use crate::discriminant_analysis::{
+    FittedLinearDiscriminantAnalysis, LinearDiscriminantAnalysis,
+};
 pub use crate::ensemble::{
-    FittedRandomForestClassifier, FittedRandomForestRegressor, MaxFeatures, RandomForestClassifier,
+    AdaBoostClassifier, FittedAdaBoostClassifier, FittedGradientBoostingClassifier,
+    FittedGradientBoostingRegressor, FittedRandomForestClassifier, FittedRandomForestRegressor,
+    GradientBoostingClassifier, GradientBoostingRegressor, MaxFeatures, RandomForestClassifier,
     RandomForestRegressor,
 };
+pub use crate::inspection::{PermutationImportance, permutation_importance};
+#[cfg(feature = "csv")]
+pub use crate::io::{dataset_from_csv_path, dataset_from_csv_reader};
 pub use crate::linear_model::{
-    ConvergenceReport, FittedLinearRegression, FittedLogisticRegression,
-    FittedMulticlassLogisticRegression, FittedRidgeRegression, LinearRegression,
-    LogisticRegression, MulticlassLogisticRegression, RidgeRegression,
+    ConvergenceReport, ElasticNetRegression, FittedElasticNetRegression, FittedLassoRegression,
+    FittedLinearRegression, FittedLogisticRegression, FittedMulticlassLogisticRegression,
+    FittedRidgeRegression, LassoRegression, LinearRegression, LogisticRegression,
+    MulticlassLogisticRegression, RidgeRegression,
 };
 pub use crate::metrics::{
     Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
@@ -54,7 +73,10 @@ pub use crate::model_selection::{
 };
 #[cfg(feature = "parallel")]
 pub use crate::model_selection::{cross_validate_parallel, grid_search_parallel};
-pub use crate::naive_bayes::{FittedGaussianNaiveBayes, GaussianNaiveBayes};
+pub use crate::naive_bayes::{
+    BernoulliNaiveBayes, FittedBernoulliNaiveBayes, FittedGaussianNaiveBayes,
+    FittedMultinomialNaiveBayes, GaussianNaiveBayes, MultinomialNaiveBayes,
+};
 pub use crate::neighbors::{
     FittedKNeighborsClassifier, FittedKNeighborsRegressor, KNeighborsClassifier,
     KNeighborsRegressor, Weighting,

@@ -182,9 +182,9 @@ fn is_zero(value: f64) -> bool {
     value == 0.0
 }
 
-type CenteredData = (ndarray::Array2<f64>, Array1<f64>, Array1<f64>, f64);
+pub(super) type CenteredData = (ndarray::Array2<f64>, Array1<f64>, Array1<f64>, f64);
 
-fn center(dataset: &Dataset<f64>) -> Result<CenteredData> {
+pub(super) fn center(dataset: &Dataset<f64>) -> Result<CenteredData> {
     for (index, &target) in dataset.targets().iter().enumerate() {
         if !target.is_finite() {
             return Err(MlError::NonFiniteActualTarget { index });

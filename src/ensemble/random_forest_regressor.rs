@@ -184,6 +184,7 @@ impl RandomForestRegressor {
         let n_samples = dataset.n_samples();
         let n_features = dataset.n_features();
         let targets = dataset.targets().to_owned();
+        let weights = Array1::from_elem(n_samples, 1.0);
         let impurity = |rows: &[usize]| target_variance(&targets, rows);
         let make_leaf = |rows: &[usize]| target_mean(&targets, rows);
         let limits = GrowthLimits {
@@ -207,6 +208,7 @@ impl RandomForestRegressor {
                 bootstrap_rows,
                 0,
                 &limits,
+                weights.view(),
                 &impurity,
                 &make_leaf,
                 &mut feature_sampler,

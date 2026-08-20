@@ -1,0 +1,474 @@
+//! Property-based tests for numerical invariants that must hold across the
+//! entire input space, not just the fixed examples exercised elsewhere.
+
+use machlearn::{
+    AdaBoostClassifier, BernoulliNaiveBayes, DBSCAN, Dataset, DecisionTreeRegressor,
+    ElasticNetRegression, GaussianMixture, GradientBoostingClassifier, GradientBoostingRegressor,
+    KMeans, LassoRegression, LinearDiscriminantAnalysis, MinMaxScaler, MultinomialNaiveBayes,
+    PrincipalComponentAnalysis, ScoreDirection, SplitOptions, StandardScaler, accuracy_score,
+    mean_absolute_error, mean_squared_error, permutation_importance, root_mean_squared_error,
+    train_test_split,
+};
+use ndarray::{Array1, Array2};
+use proptest::prelude::*;
+
+/// A dense matrix of finite, bounded values with `rows` in
+/// `[min_rows, max_rows]` and `cols` in `[min_cols, max_cols]`.
+fn matrix_strategy(
+    min_rows: usize,
+    max_rows: usize,
+    min_cols: usize,
+    max_cols: usize,
+) -> impl Strategy<Value = Array2<f64>> {
+    (min_rows..=max_rows, min_cols..=max_cols).prop_flat_map(|(rows, cols)| {
+        proptest::collection::vec(-1000.0_f64..1000.0, rows * cols)
+            .prop_map(move |values| Array2::from_shape_vec((rows, cols), values).unwrap())
+    })
+}
+
+/// A dense matrix of finite, non-negative, count-like values with `rows` in
+/// `[min_rows, max_rows]` and `cols` in `[min_cols, max_cols]`.
+fn non_negative_matrix_strategy(
+    min_rows: usize,
+    max_rows: usize,
+    min_cols: usize,
+    max_cols: usize,
+) -> impl Strategy<Value = Array2<f64>> {
+    (min_rows..=max_rows, min_cols..=max_cols).prop_flat_map(|(rows, cols)| {
+        proptest::collection::vec(0.0_f64..100.0, rows * cols)
+            .prop_map(move |values| Array2::from_shape_vec((rows, cols), values).unwrap())
+    })
+}
+
+fn column_mean(column: &ndarray::ArrayView1<'_, f64>) -> f64 {
+    #[allow(clippy::cast_precision_loss)]
+    let count = column.len() as f64;
+    column.sum() / count
+}
+
+fn column_variance(column: &ndarray::ArrayView1<'_, f64>) -> f64 {
+    let mean = column_mean(column);
+    #[allow(clippy::cast_precision_loss)]
+    let count = column.len() as f64;
+    column
+        .iter()
+        .map(|value| (value - mean).powi(2))
+        .sum::<f64>()
+        / count
+}
+
+proptest! {
+    /// `StandardScaler` always centers every feature to (numerically) zero
+    /// mean, regardless of the input's scale or distribution.
+    #[test]
+    fn standard_scaler_centers_every_feature(records in matrix_strategy(3, 12, 1, 4)) {
+        let fitted = StandardScaler::default().fit(records.view()).unwrap();
+        let transformed = fitted.transform(records.view()).unwrap();
+        for column in transformed.columns() {
+            prop_assert!(column_mean(&column).abs() < 1.0e-6);
+        }
+    }
+
+    /// For any feature with non-negligible original variance, `StandardScaler`
+    /// scales it to unit variance.
+    #[test]
+    fn standard_scaler_reaches_unit_variance_for_non_constant_features(
+        records in matrix_strategy(3, 12, 1, 4),
+    ) {
+        let fitted = StandardScaler::default().fit(records.view()).unwrap();
+        let transformed = fitted.transform(records.view()).unwrap();
+        for (feature, column) in records.columns().into_iter().enumerate() {
+            prop_assume!(column_variance(&column).sqrt() > 1.0e-6);
+            let variance = column_variance(&transformed.column(feature));
+            prop_assert!((variance.sqrt() - 1.0).abs() < 1.0e-6);
+        }
+    }
+
+    /// `MinMaxScaler` output always stays within the configured range, for
+    /// both constant and non-constant features.
+    #[test]
+    fn min_max_scaler_output_stays_within_the_configured_range(
+        records in matrix_strategy(2, 12, 1, 4),
+    ) {
+        let fitted = MinMaxScaler::default().fit(records.view()).unwrap();
+        let transformed = fitted.transform(records.view()).unwrap();
+        for &value in &transformed {
+            prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+        }
+    }
+
+    /// `train_test_split` never gains or loses samples: every original row
+    /// appears in exactly one of the two output datasets.
+    #[test]
+    fn train_test_split_partitions_every_sample_exactly_once(
+        seed in any::<u64>(),
+        fraction in 0.1_f64..0.9,
+        n_rows in 4_usize..40,
+    ) {
+        #[allow(clippy::cast_precision_loss)]
+        let records = Array2::from_shape_fn((n_rows, 2), |(row, _)| row as f64);
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(n_rows, |row| row as f64);
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        let split = train_test_split(
+            &dataset,
+            SplitOptions::new(fraction).with_seed(seed),
+        );
+        // A degenerate combination of a tiny sample count and a large
+        // fraction can legitimately leave zero training rows; that is a
+        // documented error, not a broken invariant.
+        let Ok((train, test)) = split else {
+            return Ok(());
+        };
+
+        prop_assert_eq!(train.n_samples() + test.n_samples(), n_rows);
+        let mut seen: Vec<bool> = vec![false; n_rows];
+        for &target in train.targets().iter().chain(test.targets().iter()) {
+            #[allow(clippy::cast_sign_loss, clippy::cast_possible_truncation)]
+            let index = target as usize;
+            prop_assert!(!seen[index], "row {index} appeared in both splits");
+            seen[index] = true;
+        }
+        prop_assert!(seen.iter().all(|&was_seen| was_seen));
+    }
+
+    /// Regression error metrics are always non-negative, and a perfect
+    /// prediction always scores exactly zero.
+    #[test]
+    fn regression_errors_are_non_negative_and_zero_for_perfect_predictions(
+        actual in proptest::collection::vec(-1000.0_f64..1000.0, 2..20),
+    ) {
+        let actual = Array1::from_vec(actual);
+        prop_assert!(mean_squared_error(actual.view(), actual.view()).unwrap().abs() < 1.0e-12);
+        prop_assert!(mean_absolute_error(actual.view(), actual.view()).unwrap().abs() < 1.0e-12);
+        prop_assert!(
+            root_mean_squared_error(actual.view(), actual.view()).unwrap().abs() < 1.0e-12
+        );
+    }
+
+    /// Regression error metrics stay non-negative for arbitrary, imperfect
+    /// predictions too.
+    #[test]
+    fn regression_errors_stay_non_negative(
+        (actual, noise) in proptest::collection::vec(-1000.0_f64..1000.0, 2..20)
+            .prop_flat_map(|actual| {
+                let len = actual.len();
+                (Just(actual), proptest::collection::vec(-50.0_f64..50.0, len))
+            }),
+    ) {
+        let actual = Array1::from_vec(actual);
+        let predicted = Array1::from_iter(
+            actual.iter().zip(noise.iter()).map(|(value, offset)| value + offset),
+        );
+        prop_assert!(mean_squared_error(actual.view(), predicted.view()).unwrap() >= 0.0);
+        prop_assert!(mean_absolute_error(actual.view(), predicted.view()).unwrap() >= 0.0);
+        prop_assert!(root_mean_squared_error(actual.view(), predicted.view()).unwrap() >= 0.0);
+    }
+
+    /// `accuracy_score` is always within `[0, 1]`, and identical inputs
+    /// always score a perfect `1.0`.
+    #[test]
+    fn accuracy_score_is_bounded_and_perfect_for_identical_inputs(
+        labels in proptest::collection::vec(0_u8..4, 2..20),
+    ) {
+        let labels = Array1::from_vec(labels);
+        let accuracy = accuracy_score(labels.view(), labels.view()).unwrap();
+        prop_assert!((accuracy - 1.0).abs() < 1.0e-12);
+        prop_assert!((0.0..=1.0).contains(&accuracy));
+    }
+
+    /// `KMeans` inertia is never negative and predictions always name an
+    /// existing cluster.
+    #[test]
+    fn kmeans_inertia_is_non_negative_and_assignments_are_in_range(
+        records in matrix_strategy(6, 20, 1, 3),
+        n_clusters in 1_usize..4,
+    ) {
+        prop_assume!(records.nrows() >= n_clusters);
+        let model = KMeans::new(n_clusters).unwrap().fit(records.view()).unwrap();
+        prop_assert!(model.inertia() >= 0.0);
+        let assignments = model.predict(records.view()).unwrap();
+        prop_assert!(assignments.iter().all(|&cluster| cluster < n_clusters));
+    }
+
+    /// PCA components are always unit-norm and mutually orthogonal, for any
+    /// input with enough rank to support the requested component count.
+    #[test]
+    fn pca_components_are_orthonormal_for_arbitrary_input(
+        records in matrix_strategy(4, 10, 2, 4),
+    ) {
+        let model = PrincipalComponentAnalysis::new().fit(records.view()).unwrap();
+        let components = model.components();
+
+        for row in components.rows() {
+            let norm_squared: f64 = row.iter().map(|value| value * value).sum();
+            prop_assert!((norm_squared - 1.0).abs() < 1.0e-6);
+        }
+        for first in 0..components.nrows() {
+            for second in (first + 1)..components.nrows() {
+                let dot_product: f64 = components
+                    .row(first)
+                    .iter()
+                    .zip(components.row(second))
+                    .map(|(a, b)| a * b)
+                    .sum();
+                prop_assert!(dot_product.abs() < 1.0e-6);
+            }
+        }
+    }
+
+    /// PCA explained-variance ratios are always non-negative and never sum
+    /// to more than one.
+    #[test]
+    fn pca_explained_variance_ratio_is_bounded(records in matrix_strategy(4, 10, 2, 4)) {
+        let model = PrincipalComponentAnalysis::new().fit(records.view()).unwrap();
+        let ratios = model.explained_variance_ratio();
+        for &ratio in ratios {
+            prop_assert!(ratio >= -1.0e-9);
+        }
+        prop_assert!(ratios.sum() <= 1.0 + 1.0e-6);
+    }
+
+    /// A sufficiently large L1 penalty drives every Lasso coefficient to
+    /// exactly zero, for arbitrary training data: soft thresholding zeroes
+    /// out any coefficient whose correlation with the residual cannot
+    /// overcome the penalty.
+    #[test]
+    fn lasso_large_alpha_zeroes_every_coefficient(records in matrix_strategy(4, 15, 1, 4)) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).sin() * 10.0);
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        let model = LassoRegression::new(1.0e6).unwrap().fit(&dataset).unwrap();
+
+        prop_assert_eq!(model.n_nonzero_coefficients(), 0);
+    }
+
+    /// `ElasticNetRegression` with `l1_ratio = 1.0` always matches
+    /// `LassoRegression` exactly: they solve the same objective.
+    #[test]
+    fn elastic_net_l1_ratio_one_matches_lasso(
+        records in matrix_strategy(4, 15, 1, 4),
+        alpha in 0.01_f64..5.0,
+    ) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).cos() * 5.0);
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        let lasso = LassoRegression::new(alpha).unwrap().fit(&dataset).unwrap();
+        let elastic_net = ElasticNetRegression::new(alpha, 1.0).unwrap().fit(&dataset).unwrap();
+
+        for (lasso_coef, elastic_net_coef) in
+            lasso.coefficients().iter().zip(elastic_net.coefficients())
+        {
+            prop_assert!((lasso_coef - elastic_net_coef).abs() < 1.0e-6);
+        }
+        prop_assert!((lasso.intercept() - elastic_net.intercept()).abs() < 1.0e-6);
+    }
+
+    /// Linear discriminant analysis probabilities are always bounded and
+    /// sum to one, for arbitrary training data with a well-conditioned
+    /// pooled covariance.
+    #[test]
+    fn lda_probabilities_are_normalized(records in matrix_strategy(9, 20, 1, 3)) {
+        let n_classes = 3;
+        let targets = Array1::from_shape_fn(records.nrows(), |row| {
+            u8::try_from(row % n_classes).unwrap()
+        });
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        // A rank-deficient pooled covariance is a legitimate, documented
+        // error for this randomly generated data, not a broken invariant;
+        // skip those draws rather than asserting fit always succeeds.
+        let Ok(model) = LinearDiscriminantAnalysis::new().fit(&dataset) else {
+            return Ok(());
+        };
+
+        let probabilities = model.predict_probabilities(dataset.records()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+
+    /// Gradient-boosted regression predictions are always finite, for
+    /// arbitrary training data queried at the training points themselves.
+    #[test]
+    fn gradient_boosting_regressor_predictions_are_finite(records in matrix_strategy(4, 15, 1, 4)) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).sin() * 10.0);
+        let dataset = Dataset::new(records.clone(), targets).unwrap();
+
+        let model = GradientBoostingRegressor::new()
+            .with_n_estimators(10)
+            .unwrap()
+            .fit(&dataset)
+            .unwrap();
+
+        let predictions = model.predict(records.view()).unwrap();
+        prop_assert!(predictions.iter().all(|value| value.is_finite()));
+    }
+
+    /// Gradient-boosted classification probabilities are always bounded and
+    /// sum to one, for arbitrary training data with two observed classes.
+    #[test]
+    fn gradient_boosting_classifier_probabilities_are_normalized(
+        records in matrix_strategy(4, 15, 1, 4),
+    ) {
+        let targets = Array1::from_shape_fn(records.nrows(), |row| u8::try_from(row % 2).unwrap());
+        let dataset = Dataset::new(records.clone(), targets).unwrap();
+
+        let model = GradientBoostingClassifier::new()
+            .with_n_estimators(10)
+            .unwrap()
+            .fit(&dataset)
+            .unwrap();
+
+        let probabilities = model.predict_probabilities(records.view()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+
+    /// `AdaBoost` classification probabilities are always bounded and sum to
+    /// one, for arbitrary training data with two observed classes.
+    #[test]
+    fn adaboost_classifier_probabilities_are_normalized(records in matrix_strategy(4, 15, 1, 4)) {
+        let targets = Array1::from_shape_fn(records.nrows(), |row| u8::try_from(row % 2).unwrap());
+        let dataset = Dataset::new(records.clone(), targets).unwrap();
+
+        // A first-round weak learner no better than random guessing is a
+        // legitimate, documented error for this randomly generated data,
+        // not a broken invariant; skip those draws rather than asserting
+        // fit always succeeds.
+        let Ok(model) = AdaBoostClassifier::new().with_n_estimators(10).unwrap().fit(&dataset)
+        else {
+            return Ok(());
+        };
+
+        let probabilities = model.predict_probabilities(records.view()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+
+    /// Permutation importance always reports one finite value per repeat
+    /// for every feature, regardless of the model or the training data's
+    /// distribution.
+    #[test]
+    fn permutation_importance_reports_one_finite_value_per_feature_and_repeat(
+        records in matrix_strategy(6, 15, 1, 4),
+        n_repeats in 1_usize..5,
+        seed in any::<u64>(),
+    ) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).sin() * 10.0);
+        let dataset = Dataset::new(records, targets).unwrap();
+        let model = DecisionTreeRegressor::new().fit(&dataset).unwrap();
+
+        let result = permutation_importance(
+            &model,
+            &dataset,
+            mean_squared_error,
+            ScoreDirection::Minimize,
+            n_repeats,
+            seed,
+        )
+        .unwrap();
+
+        prop_assert_eq!(result.n_features(), dataset.n_features());
+        prop_assert_eq!(result.n_repeats(), n_repeats);
+        prop_assert!(result.importances().iter().all(|value| value.is_finite()));
+    }
+
+    /// Multinomial Naive Bayes probabilities are always bounded and sum to
+    /// one, for arbitrary non-negative count-like training data.
+    #[test]
+    fn multinomial_naive_bayes_probabilities_are_normalized(
+        records in non_negative_matrix_strategy(4, 15, 1, 4),
+    ) {
+        let targets = Array1::from_shape_fn(records.nrows(), |row| u8::try_from(row % 2).unwrap());
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        let model = MultinomialNaiveBayes::new().fit(&dataset).unwrap();
+
+        let probabilities = model.predict_probabilities(dataset.records()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+
+    /// Bernoulli Naive Bayes probabilities are always bounded and sum to
+    /// one, for arbitrary non-negative training data binarized at zero.
+    #[test]
+    fn bernoulli_naive_bayes_probabilities_are_normalized(
+        records in non_negative_matrix_strategy(4, 15, 1, 4),
+    ) {
+        let targets = Array1::from_shape_fn(records.nrows(), |row| u8::try_from(row % 2).unwrap());
+        let dataset = Dataset::new(records, targets).unwrap();
+
+        let model = BernoulliNaiveBayes::new().fit(&dataset).unwrap();
+
+        let probabilities = model.predict_probabilities(dataset.records()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+
+    /// DBSCAN always labels every row either noise or with an in-range
+    /// cluster index, and the noise and clustered counts always add up to
+    /// the full sample count, for arbitrary data and parameters.
+    #[test]
+    fn dbscan_labels_are_in_range_and_account_for_every_row(
+        records in matrix_strategy(4, 20, 1, 3),
+        eps in 0.1_f64..50.0,
+        min_samples in 1_usize..5,
+    ) {
+        let model = DBSCAN::new(eps, min_samples).unwrap().fit(records.view()).unwrap();
+
+        let labels = model.labels();
+        prop_assert_eq!(labels.len(), records.nrows());
+        let mut clustered = 0;
+        for &label in labels {
+            if let Some(cluster) = label {
+                prop_assert!(cluster < model.n_clusters());
+                clustered += 1;
+            }
+        }
+        prop_assert_eq!(clustered + model.n_noise_points(), records.nrows());
+    }
+
+    /// Gaussian mixture membership probabilities are always bounded and sum
+    /// to one, for arbitrary data and component counts.
+    #[test]
+    fn gaussian_mixture_probabilities_are_normalized(
+        records in matrix_strategy(6, 20, 1, 3),
+        n_components in 1_usize..4,
+    ) {
+        prop_assume!(records.nrows() >= n_components);
+        let model = GaussianMixture::new(n_components).unwrap().fit(records.view()).unwrap();
+
+        let probabilities = model.predict_probabilities(records.view()).unwrap();
+        for row in probabilities.rows() {
+            prop_assert!((row.sum() - 1.0).abs() < 1.0e-6);
+            for &value in row {
+                prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
+            }
+        }
+    }
+}
