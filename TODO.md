@@ -112,9 +112,9 @@ Status markers:
 
 ## 13. Preprocessing expansion
 
-- [ ] One-hot / dummy encoding for categorical features
-- [ ] Polynomial and interaction feature generation
-- [ ] Variance-threshold and univariate feature selection
+- [x] One-hot / dummy encoding for categorical features
+- [x] Polynomial and interaction feature generation
+- [x] Variance-threshold and univariate feature selection
 
 ## 14. Model selection and evaluation expansion
 

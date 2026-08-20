@@ -5,8 +5,8 @@
 use ndarray::{Array2, ArrayView2};
 
 use super::{
-    FittedMinMaxScaler, FittedSimpleImputer, FittedStandardScaler, MinMaxScaler, SimpleImputer,
-    StandardScaler,
+    FittedMinMaxScaler, FittedPolynomialFeatures, FittedSimpleImputer, FittedStandardScaler,
+    MinMaxScaler, PolynomialFeatures, SimpleImputer, StandardScaler,
 };
 use crate::core::{Result, Transform, validate_feature_shape, validate_features};
 
@@ -181,6 +181,18 @@ impl TransformerEstimator for SimpleImputer {
 }
 
 impl FittedTransformer for FittedSimpleImputer {
+    fn transform(&self, records: ArrayView2<'_, f64>) -> Result<Array2<f64>> {
+        Self::transform(self, records)
+    }
+}
+
+impl TransformerEstimator for PolynomialFeatures {
+    fn fit(&self, records: ArrayView2<'_, f64>) -> Result<Box<dyn FittedTransformer>> {
+        Ok(Box::new(Self::fit(self, records)?))
+    }
+}
+
+impl FittedTransformer for FittedPolynomialFeatures {
     fn transform(&self, records: ArrayView2<'_, f64>) -> Result<Array2<f64>> {
         Self::transform(self, records)
     }

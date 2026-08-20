@@ -10,6 +10,10 @@ root.
 | `standard_scaler`        | Standardization and inverse transformation            | `cargo run --example standard_scaler`                      |
 | `min_max_scaler`         | Default and custom output ranges                      | `cargo run --example min_max_scaler`                       |
 | `label_encoder`          | Reversible categorical target encoding                | `cargo run --example label_encoder`                        |
+| `one_hot_encoder`        | One-hot and dummy (drop-first) categorical feature encoding | `cargo run --example one_hot_encoder`                |
+| `polynomial_features`    | Polynomial and interaction-only feature expansion      | `cargo run --example polynomial_features`                  |
+| `variance_threshold`     | Removing exactly constant (or low-variance) features   | `cargo run --example variance_threshold`                   |
+| `select_k_best`          | Univariate F-test scoring and top-k feature selection  | `cargo run --example select_k_best`                        |
 | `simple_imputer`         | Explicit mean/median/constant imputation              | `cargo run --example simple_imputer`                       |
 | `pipeline`               | Ordered fitting without data leakage                  | `cargo run --example pipeline`                             |
 | `regression_metrics`     | MSE, RMSE, MAE, and R-squared                         | `cargo run --example regression_metrics`                   |

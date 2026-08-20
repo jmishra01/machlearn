@@ -15,6 +15,8 @@ pub mod decomposition;
 pub mod discriminant_analysis;
 /// Bagged decision-tree ensembles for classification and regression.
 pub mod ensemble;
+/// Removing uninformative feature columns before fitting a model.
+pub mod feature_selection;
 /// Model-agnostic tools for inspecting a fitted estimator's behavior.
 pub mod inspection;
 /// Optional dataset input/output helpers.
@@ -50,6 +52,10 @@ pub use crate::ensemble::{
     GradientBoostingClassifier, GradientBoostingRegressor, MaxFeatures, RandomForestClassifier,
     RandomForestRegressor,
 };
+pub use crate::feature_selection::{
+    FittedSelectKBest, FittedVarianceThreshold, SelectKBest, VarianceThreshold, f_classif,
+    f_regression,
+};
 pub use crate::inspection::{PermutationImportance, permutation_importance};
 #[cfg(feature = "csv")]
 pub use crate::io::{dataset_from_csv_path, dataset_from_csv_reader};
@@ -82,9 +88,10 @@ pub use crate::neighbors::{
     KNeighborsRegressor, Weighting,
 };
 pub use crate::preprocessing::{
-    FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,
-    FittedStandardScaler, FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler,
-    Pipeline, SimpleImputer, StandardScaler, TransformerEstimator,
+    FittedLabelEncoder, FittedMinMaxScaler, FittedOneHotEncoder, FittedPipeline,
+    FittedPolynomialFeatures, FittedSimpleImputer, FittedStandardScaler, FittedTransformer,
+    ImputationStrategy, LabelEncoder, MinMaxScaler, OneHotEncoder, Pipeline, PolynomialFeatures,
+    SimpleImputer, StandardScaler, TransformerEstimator,
 };
 pub use crate::tree::{
     DecisionTreeClassifier, DecisionTreeRegressor, FittedDecisionTreeClassifier,

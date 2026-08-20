@@ -5,7 +5,8 @@ use machlearn::{
     AdaBoostClassifier, BernoulliNaiveBayes, DBSCAN, Dataset, DecisionTreeRegressor,
     ElasticNetRegression, GaussianMixture, GradientBoostingClassifier, GradientBoostingRegressor,
     KMeans, LassoRegression, LinearDiscriminantAnalysis, MinMaxScaler, MultinomialNaiveBayes,
-    PrincipalComponentAnalysis, ScoreDirection, SplitOptions, StandardScaler, accuracy_score,
+    OneHotEncoder, PolynomialFeatures, PrincipalComponentAnalysis, ScoreDirection, SelectKBest,
+    SplitOptions, StandardScaler, VarianceThreshold, accuracy_score, f_regression,
     mean_absolute_error, mean_squared_error, permutation_importance, root_mean_squared_error,
     train_test_split,
 };
@@ -470,5 +471,106 @@ proptest! {
                 prop_assert!((-1.0e-9..=1.0 + 1.0e-9).contains(&value));
             }
         }
+    }
+
+    /// One-hot encoding always produces exactly one `1.0` per row (every
+    /// other entry `0.0`), for arbitrary categorical labels.
+    #[test]
+    fn one_hot_encoding_has_exactly_one_hot_entry_per_row(
+        labels in proptest::collection::vec(0_u8..6, 1..20),
+    ) {
+        let labels = Array1::from_vec(labels);
+        let fitted = OneHotEncoder::new().fit(labels.view()).unwrap();
+        let encoded = fitted.transform(labels.view()).unwrap();
+
+        for row in encoded.rows() {
+            let ones = row.iter().filter(|&&value| value > 0.5).count();
+            let zeros = row.iter().filter(|&&value| value < 0.5).count();
+            prop_assert_eq!(ones, 1);
+            prop_assert_eq!(zeros, row.len() - 1);
+        }
+    }
+
+    /// Dropping the first class still leaves every row with at most one
+    /// `1.0` entry, and only rows whose original label was the dropped
+    /// class are all zero.
+    #[test]
+    fn one_hot_encoding_drop_first_has_at_most_one_hot_entry_per_row(
+        labels in proptest::collection::vec(0_u8..6, 1..20),
+    ) {
+        let labels = Array1::from_vec(labels);
+        let fitted = OneHotEncoder::new().with_drop_first(true).fit(labels.view()).unwrap();
+        let encoded = fitted.transform(labels.view()).unwrap();
+
+        for (row_index, row) in encoded.rows().into_iter().enumerate() {
+            let ones = row.iter().filter(|&&value| value > 0.5).count();
+            prop_assert!(ones <= 1);
+            let is_dropped_class = labels[row_index] == fitted.classes()[0];
+            prop_assert_eq!(ones == 0, is_dropped_class);
+        }
+    }
+
+    /// Every polynomial-expansion output column always equals the product
+    /// of the raw feature values named by its combination, and the bias
+    /// column (when present) is always exactly `1.0`, for arbitrary data
+    /// and degree.
+    #[test]
+    fn polynomial_features_columns_match_their_combinations(
+        records in matrix_strategy(2, 8, 1, 3),
+        degree in 1_usize..4,
+    ) {
+        let fitted = PolynomialFeatures::new(degree).unwrap().fit(records.view()).unwrap();
+        let transformed = fitted.transform(records.view()).unwrap();
+
+        prop_assert_eq!(transformed.ncols(), fitted.combinations().len());
+        for (row_index, row) in records.rows().into_iter().enumerate() {
+            for (column_index, combination) in fitted.combinations().iter().enumerate() {
+                let expected: f64 = combination.iter().map(|&feature_index| row[feature_index]).product();
+                prop_assert!((transformed[[row_index, column_index]] - expected).abs() < 1.0e-6);
+            }
+        }
+        for &value in transformed.column(0) {
+            prop_assert!((value - 1.0).abs() < 1.0e-9);
+        }
+    }
+
+    /// `VarianceThreshold` always keeps exactly the features whose computed
+    /// variance exceeds the threshold, for arbitrary data.
+    #[test]
+    fn variance_threshold_keeps_exactly_the_features_above_threshold(
+        records in matrix_strategy(3, 15, 1, 4),
+        threshold in 0.0_f64..500.0,
+    ) {
+        let fitted = VarianceThreshold::new().with_threshold(threshold).unwrap().fit(records.view()).unwrap();
+
+        let expected: Vec<usize> = (0..records.ncols())
+            .filter(|&index| fitted.variances()[index] > threshold)
+            .collect();
+        prop_assert_eq!(fitted.selected_indices(), expected.as_slice());
+
+        let transformed = fitted.transform(records.view()).unwrap();
+        prop_assert_eq!(transformed.ncols(), fitted.n_selected_features());
+    }
+
+    /// `SelectKBest` never selects more features than `k` or more than are
+    /// available, and its selected indices are always sorted and within
+    /// range, for arbitrary data and `k`.
+    #[test]
+    fn select_k_best_selects_at_most_k_in_range_features(
+        (records, targets) in (3_usize..15, 1_usize..5).prop_flat_map(|(rows, cols)| {
+            (
+                proptest::collection::vec(-1000.0_f64..1000.0, rows * cols)
+                    .prop_map(move |values| Array2::from_shape_vec((rows, cols), values).unwrap()),
+                proptest::collection::vec(-1000.0_f64..1000.0, rows).prop_map(Array1::from_vec),
+            )
+        }),
+        k in 0_usize..8,
+    ) {
+        let fitted = SelectKBest::new(k).fit(records.view(), targets.view(), f_regression).unwrap();
+
+        prop_assert!(fitted.n_selected_features() <= k);
+        prop_assert!(fitted.n_selected_features() <= records.ncols());
+        prop_assert!(fitted.selected_indices().windows(2).all(|pair| pair[0] < pair[1]));
+        prop_assert!(fitted.selected_indices().iter().all(|&index| index < records.ncols()));
     }
 }

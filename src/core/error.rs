@@ -387,6 +387,24 @@ pub enum MlError {
     /// A DBSCAN minimum neighborhood size is zero.
     #[error("min_samples must be at least one; received {0}")]
     InvalidMinSamples(usize),
+
+    /// A polynomial feature expansion degree is zero.
+    #[error("degree must be at least one; received {0}")]
+    InvalidDegree(usize),
+
+    /// A univariate ANOVA F-test requires at least two observed classes.
+    #[error("at least {required} classes are required, but only {actual} were observed")]
+    InsufficientClasses {
+        /// Minimum supported class count.
+        required: usize,
+        /// Actual observed class count.
+        actual: usize,
+    },
+
+    /// A variance-threshold filter's minimum variance is negative, NaN, or
+    /// infinite.
+    #[error("threshold must be finite and non-negative; received {0}")]
+    InvalidVarianceThreshold(f64),
 }
 
 /// Result type returned by `MachLearn` operations.
