@@ -15,7 +15,10 @@ fn main() -> Result<()> {
         ],
         array!["amber", "amber", "blue", "blue", "cyan", "cyan"],
     )?;
-    let model = MulticlassLogisticRegression::new().fit(&dataset)?;
+    let estimator = MulticlassLogisticRegression::new()
+        .with_max_iterations(50)?
+        .with_tolerance(1.0e-8)?;
+    let model = estimator.fit(&dataset)?;
     let records = array![[-2.5, 0.0], [2.5, 0.0], [0.0, 2.5]];
 
     println!("classes: {:?}", model.classes());
@@ -25,5 +28,13 @@ fn main() -> Result<()> {
         model.predict_probabilities(records.view())?
     );
     println!("predictions: {:?}", model.predict(records.view())?);
+    println!(
+        "iterations per class: {:?}",
+        model
+            .convergence_reports()
+            .iter()
+            .map(machlearn::ConvergenceReport::iterations)
+            .collect::<Vec<_>>()
+    );
     Ok(())
 }

@@ -26,6 +26,15 @@ root.
 | `ridge_regression`       | L2-regularized regression with intercept handling        | `cargo run --example ridge_regression`                     |
 | `logistic_regression`    | Binary classification and class probabilities             | `cargo run --example logistic_regression`                  |
 | `multiclass_logistic_regression` | One-vs-rest classification and normalized probabilities | `cargo run --example multiclass_logistic_regression`    |
+| `knn_classifier`         | Voting among nearby points with uniform and distance weighting | `cargo run --example knn_classifier`               |
+| `knn_regressor`          | Averaging nearby targets with uniform and distance weighting | `cargo run --example knn_regressor`                  |
+| `gaussian_naive_bayes`   | Per-class Gaussian fitting and normalized probabilities | `cargo run --example gaussian_naive_bayes`               |
+| `decision_tree_classifier` | Gini-minimizing splits, leaf probabilities, and feature importances | `cargo run --example decision_tree_classifier` |
+| `decision_tree_regressor` | Variance-minimizing splits, depth-limited predictions, and feature importances | `cargo run --example decision_tree_regressor` |
+| `random_forest_classifier` | Bootstrap-aggregated trees, averaged leaf probabilities, and feature importances | `cargo run --example random_forest_classifier` |
+| `random_forest_regressor` | Bootstrap-aggregated trees, averaged predictions, and feature importances | `cargo run --example random_forest_regressor` |
+| `kmeans`                 | k-means++ initialization, cluster assignment, and inertia | `cargo run --example kmeans`                            |
+| `pca`                    | Dimensionality reduction and explained-variance reporting | `cargo run --example pca`                               |
 | `custom_model`           | Implementing the `Fit` and `Predict` traits           | `cargo run --example custom_model`                         |
 | `serde_model`            | Serializing a fitted transformer                      | `cargo run --example serde_model --features serde`         |
 | `parallel_batches`       | Transforming independent batches with Rayon           | `cargo run --example parallel_batches --features parallel` |

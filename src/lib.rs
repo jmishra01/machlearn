@@ -5,22 +5,40 @@
 
 mod solver;
 
+/// Clustering estimators.
+pub mod cluster;
 /// Fundamental data structures and traits.
 pub mod core;
+/// Dimensionality-reduction estimators.
+pub mod decomposition;
+/// Bagged decision-tree ensembles for classification and regression.
+pub mod ensemble;
 /// Linear estimators for regression and, later, classification.
 pub mod linear_model;
 /// Regression and, later, classification evaluation metrics.
 pub mod metrics;
 /// Dataset splitting and, later, model-selection utilities.
 pub mod model_selection;
+/// Probabilistic classifiers.
+pub mod naive_bayes;
+/// Distance-based estimators for classification and regression.
+pub mod neighbors;
 /// Data scaling and, later, feature-transformation utilities.
 pub mod preprocessing;
+/// Decision-tree estimators for classification and regression.
+pub mod tree;
 
+pub use crate::cluster::{FittedKMeans, KMeans, KMeansInit};
 pub use crate::core::{Dataset, Fit, MlError, Predict, Result, Transform};
+pub use crate::decomposition::{FittedPrincipalComponentAnalysis, PrincipalComponentAnalysis};
+pub use crate::ensemble::{
+    FittedRandomForestClassifier, FittedRandomForestRegressor, MaxFeatures, RandomForestClassifier,
+    RandomForestRegressor,
+};
 pub use crate::linear_model::{
-    FittedLinearRegression, FittedLogisticRegression, FittedMulticlassLogisticRegression,
-    FittedRidgeRegression, LinearRegression, LogisticRegression, MulticlassLogisticRegression,
-    RidgeRegression,
+    ConvergenceReport, FittedLinearRegression, FittedLogisticRegression,
+    FittedMulticlassLogisticRegression, FittedRidgeRegression, LinearRegression,
+    LogisticRegression, MulticlassLogisticRegression, RidgeRegression,
 };
 pub use crate::metrics::{
     Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
@@ -36,8 +54,17 @@ pub use crate::model_selection::{
 };
 #[cfg(feature = "parallel")]
 pub use crate::model_selection::{cross_validate_parallel, grid_search_parallel};
+pub use crate::naive_bayes::{FittedGaussianNaiveBayes, GaussianNaiveBayes};
+pub use crate::neighbors::{
+    FittedKNeighborsClassifier, FittedKNeighborsRegressor, KNeighborsClassifier,
+    KNeighborsRegressor, Weighting,
+};
 pub use crate::preprocessing::{
     FittedLabelEncoder, FittedMinMaxScaler, FittedPipeline, FittedSimpleImputer,
     FittedStandardScaler, FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler,
     Pipeline, SimpleImputer, StandardScaler, TransformerEstimator,
+};
+pub use crate::tree::{
+    DecisionTreeClassifier, DecisionTreeRegressor, FittedDecisionTreeClassifier,
+    FittedDecisionTreeRegressor,
 };

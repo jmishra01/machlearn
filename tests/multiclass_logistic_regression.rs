@@ -100,6 +100,50 @@ fn exposes_regularization_and_intercept_configuration() {
 }
 
 #[test]
+fn reports_per_class_convergence_and_honors_configured_stopping_criteria() {
+    let dataset = three_class_dataset();
+    let estimator = MulticlassLogisticRegression::new()
+        .with_max_iterations(50)
+        .unwrap()
+        .with_tolerance(1.0e-8)
+        .unwrap();
+
+    assert_eq!(estimator.max_iterations(), 50);
+    assert_abs_diff_eq!(estimator.tolerance(), 1.0e-8);
+
+    let model = estimator.fit(&dataset).unwrap();
+    let reports = model.convergence_reports();
+
+    assert_eq!(reports.len(), model.n_classes());
+    for report in reports {
+        assert!(report.iterations() >= 1);
+        assert!(report.iterations() <= 50);
+        assert_abs_diff_eq!(report.tolerance(), 1.0e-8);
+    }
+
+    assert_eq!(
+        MulticlassLogisticRegression::new()
+            .with_max_iterations(0)
+            .unwrap_err(),
+        MlError::InvalidMaxIterations(0)
+    );
+    assert_eq!(
+        MulticlassLogisticRegression::new()
+            .with_tolerance(0.0)
+            .unwrap_err(),
+        MlError::InvalidTolerance(0.0)
+    );
+
+    let unreachable_tolerance = MulticlassLogisticRegression::new()
+        .with_max_iterations(1)
+        .unwrap();
+    assert_eq!(
+        unreachable_tolerance.fit(&dataset).unwrap_err(),
+        MlError::OptimizationDidNotConverge { iterations: 1 }
+    );
+}
+
+#[test]
 fn requires_at_least_three_classes() {
     let one_class = Dataset::new(array![[0.0], [1.0]], array!["same", "same"]).unwrap();
     assert_eq!(

@@ -8,9 +8,15 @@ use crate::{
     core::{Dataset, Fit, MlError, Predict, Result, validate_feature_count, validate_features},
     linear_model::{
         common::log_sigmoid,
-        logistic_regression::{fit_parameters, validate_alpha},
+        convergence::ConvergenceReport,
+        logistic_regression::{
+            fit_parameters, validate_alpha, validate_max_iterations, validate_tolerance,
+        },
     },
 };
+
+const DEFAULT_MAX_ITERATIONS: usize = 100;
+const DEFAULT_TOLERANCE: f64 = 1.0e-10;
 
 /// Configures L2-regularized multiclass logistic regression.
 ///
@@ -21,6 +27,8 @@ use crate::{
 pub struct MulticlassLogisticRegression {
     alpha: f64,
     fit_intercept: bool,
+    max_iterations: usize,
+    tolerance: f64,
 }
 
 impl Default for MulticlassLogisticRegression {
@@ -28,6 +36,8 @@ impl Default for MulticlassLogisticRegression {
         Self {
             alpha: 1.0,
             fit_intercept: true,
+            max_iterations: DEFAULT_MAX_ITERATIONS,
+            tolerance: DEFAULT_TOLERANCE,
         }
     }
 }
@@ -39,6 +49,8 @@ impl MulticlassLogisticRegression {
         Self {
             alpha: 1.0,
             fit_intercept: true,
+            max_iterations: DEFAULT_MAX_ITERATIONS,
+            tolerance: DEFAULT_TOLERANCE,
         }
     }
 
@@ -63,6 +75,31 @@ impl MulticlassLogisticRegression {
         self
     }
 
+    /// Sets the maximum number of iteratively reweighted least-squares
+    /// iterations to attempt for each class model before reporting
+    /// non-convergence.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `max_iterations` is zero.
+    pub fn with_max_iterations(mut self, max_iterations: usize) -> Result<Self> {
+        validate_max_iterations(max_iterations)?;
+        self.max_iterations = max_iterations;
+        Ok(self)
+    }
+
+    /// Sets the convergence tolerance applied to the largest relative
+    /// parameter change between iterations for each class model.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `tolerance` is non-positive, NaN, or infinite.
+    pub fn with_tolerance(mut self, tolerance: f64) -> Result<Self> {
+        validate_tolerance(tolerance)?;
+        self.tolerance = tolerance;
+        Ok(self)
+    }
+
     /// Returns the L2 regularization strength.
     #[must_use]
     pub const fn alpha(self) -> f64 {
@@ -75,13 +112,27 @@ impl MulticlassLogisticRegression {
         self.fit_intercept
     }
 
+    /// Returns the configured iteration budget.
+    #[must_use]
+    pub const fn max_iterations(self) -> usize {
+        self.max_iterations
+    }
+
+    /// Returns the configured convergence tolerance.
+    #[must_use]
+    pub const fn tolerance(self) -> f64 {
+        self.tolerance
+    }
+
     /// Fits one binary logistic model per observed class.
     ///
     /// # Errors
     ///
-    /// Returns an error for invalid regularization, fewer than three target
-    /// classes, a rank-deficient unregularized design, a numerical failure, or
-    /// failure of any class model to converge.
+    /// Returns an error for invalid regularization, an invalid iteration
+    /// budget or tolerance, fewer than three target classes, a
+    /// rank-deficient unregularized design, a numerical failure, or failure
+    /// of any class model to converge within the configured iteration
+    /// budget.
     pub fn fit<Label>(
         &self,
         dataset: &Dataset<Label>,
@@ -90,9 +141,12 @@ impl MulticlassLogisticRegression {
         Label: Clone + Ord,
     {
         validate_alpha(self.alpha)?;
+        validate_max_iterations(self.max_iterations)?;
+        validate_tolerance(self.tolerance)?;
         let classes = sorted_multiclass_targets(dataset)?;
         let mut coefficients = Array2::zeros((classes.len(), dataset.n_features()));
         let mut intercepts = Array1::zeros(classes.len());
+        let mut convergence_reports = Vec::with_capacity(classes.len());
 
         for (class_index, class) in classes.iter().enumerate() {
             let encoded = Array1::from_iter(
@@ -101,8 +155,14 @@ impl MulticlassLogisticRegression {
                     .iter()
                     .map(|label| usize::from(label == class)),
             );
-            let parameters =
-                fit_parameters(dataset.records(), &encoded, self.fit_intercept, self.alpha)?;
+            let (parameters, convergence) = fit_parameters(
+                dataset.records(),
+                &encoded,
+                self.fit_intercept,
+                self.alpha,
+                self.max_iterations,
+                self.tolerance,
+            )?;
             let coefficient_start = usize::from(self.fit_intercept);
             if self.fit_intercept {
                 intercepts[class_index] = parameters[0];
@@ -111,6 +171,7 @@ impl MulticlassLogisticRegression {
                 coefficients[[class_index, feature_index]] =
                     parameters[feature_index + coefficient_start];
             }
+            convergence_reports.push(convergence);
         }
 
         Ok(FittedMulticlassLogisticRegression {
@@ -118,6 +179,7 @@ impl MulticlassLogisticRegression {
             intercepts,
             alpha: self.alpha,
             classes,
+            convergence_reports,
         })
     }
 }
@@ -141,6 +203,7 @@ pub struct FittedMulticlassLogisticRegression<Label> {
     intercepts: Array1<f64>,
     alpha: f64,
     classes: Vec<Label>,
+    convergence_reports: Vec<ConvergenceReport>,
 }
 
 impl<Label> FittedMulticlassLogisticRegression<Label> {
@@ -178,6 +241,12 @@ impl<Label> FittedMulticlassLogisticRegression<Label> {
     #[must_use]
     pub fn n_features(&self) -> usize {
         self.coefficients.ncols()
+    }
+
+    /// Returns how each per-class solver converged, in class order.
+    #[must_use]
+    pub fn convergence_reports(&self) -> &[ConvergenceReport] {
+        &self.convergence_reports
     }
 
     /// Computes one one-vs-rest decision score per class and sample.

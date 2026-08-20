@@ -1,6 +1,6 @@
 # MachLearn development tracker
 
-Last updated: 2026-08-17
+Last updated: 2026-08-20
 
 Status markers:
 
@@ -55,21 +55,21 @@ Status markers:
 - [x] Ridge regression
 - [x] Binary logistic regression
 - [x] Multiclass logistic regression
-- [ ] Convergence reports and configurable stopping criteria
+- [x] Convergence reports and configurable stopping criteria
 
 ## 6. Additional supervised models
 
-- [ ] K-nearest-neighbour classifier and regressor
-- [ ] Gaussian Naive Bayes
-- [ ] Decision-tree classifier and regressor
-- [ ] Random-forest classifier and regressor
-- [ ] Feature importance reporting
+- [x] K-nearest-neighbour classifier and regressor
+- [x] Gaussian Naive Bayes
+- [x] Decision-tree classifier and regressor
+- [x] Random-forest classifier and regressor
+- [x] Feature importance reporting
 
 ## 7. Unsupervised learning
 
-- [ ] K-means and k-means++ initialization
-- [ ] Principal component analysis
-- [ ] Explained-variance reporting
+- [x] K-means and k-means++ initialization
+- [x] Principal component analysis
+- [x] Explained-variance reporting
 
 ## 8. Persistence and integrations
 

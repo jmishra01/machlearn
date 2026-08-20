@@ -83,6 +83,55 @@ fn supports_no_intercept_and_no_regularization() {
 }
 
 #[test]
+fn reports_convergence_and_honors_configured_stopping_criteria() {
+    let dataset = Dataset::new(
+        array![[-3.0], [-2.0], [-1.0], [1.0], [2.0], [3.0]],
+        array![0_u8, 0, 0, 1, 1, 1],
+    )
+    .unwrap();
+    let estimator = LogisticRegression::new()
+        .with_max_iterations(50)
+        .unwrap()
+        .with_tolerance(1.0e-8)
+        .unwrap();
+
+    assert_eq!(estimator.max_iterations(), 50);
+    assert_abs_diff_eq!(estimator.tolerance(), 1.0e-8);
+
+    let model = estimator.fit(&dataset).unwrap();
+
+    assert!(model.convergence().iterations() >= 1);
+    assert!(model.convergence().iterations() <= 50);
+    assert_abs_diff_eq!(model.convergence().tolerance(), 1.0e-8);
+    assert!(model.convergence().max_parameter_change() >= 0.0);
+
+    assert_eq!(
+        LogisticRegression::new()
+            .with_max_iterations(0)
+            .unwrap_err(),
+        MlError::InvalidMaxIterations(0)
+    );
+    assert_eq!(
+        LogisticRegression::new().with_tolerance(0.0).unwrap_err(),
+        MlError::InvalidTolerance(0.0)
+    );
+    assert_eq!(
+        LogisticRegression::new().with_tolerance(-1.0).unwrap_err(),
+        MlError::InvalidTolerance(-1.0)
+    );
+    assert!(matches!(
+        LogisticRegression::new().with_tolerance(f64::NAN),
+        Err(MlError::InvalidTolerance(value)) if value.is_nan()
+    ));
+
+    let unreachable_tolerance = LogisticRegression::new().with_max_iterations(1).unwrap();
+    assert_eq!(
+        unreachable_tolerance.fit(&dataset).unwrap_err(),
+        MlError::OptimizationDidNotConverge { iterations: 1 }
+    );
+}
+
+#[test]
 fn validates_regularization_and_binary_targets() {
     let default = LogisticRegression::default();
     assert_abs_diff_eq!(default.alpha(), 1.0);

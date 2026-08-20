@@ -277,6 +277,58 @@ pub enum MlError {
         /// Number of iterations completed before stopping.
         iterations: usize,
     },
+
+    /// A maximum iteration budget is zero.
+    #[error("maximum iterations must be at least one; received {0}")]
+    InvalidMaxIterations(usize),
+
+    /// A convergence tolerance is non-positive, NaN, or infinite.
+    #[error("convergence tolerance must be finite and positive; received {0}")]
+    InvalidTolerance(f64),
+
+    /// A requested neighbor count is zero.
+    #[error("the number of neighbors must be at least one; received {0}")]
+    InvalidNeighborCount(usize),
+
+    /// A variance-smoothing term is negative, NaN, or infinite.
+    #[error("variance smoothing must be finite and non-negative; received {0}")]
+    InvalidVarianceSmoothing(f64),
+
+    /// A minimum split sample count is less than two.
+    #[error("minimum samples to split must be at least two; received {0}")]
+    InvalidMinSamplesSplit(usize),
+
+    /// A minimum leaf sample count is zero.
+    #[error("minimum samples per leaf must be at least one; received {0}")]
+    InvalidMinSamplesLeaf(usize),
+
+    /// A random-forest estimator count is zero.
+    #[error("the number of estimators must be at least one; received {0}")]
+    InvalidEstimatorCount(usize),
+
+    /// A fixed maximum feature count is zero.
+    #[error("a fixed maximum feature count must be at least one; received {0}")]
+    InvalidMaxFeatures(usize),
+
+    /// A requested cluster count is zero.
+    #[error("the number of clusters must be at least one; received {0}")]
+    InvalidClusterCount(usize),
+
+    /// A requested principal-component count is zero.
+    #[error("the number of components must be at least one; received {0}")]
+    InvalidComponentCount(usize),
+
+    /// A requested principal-component count exceeds what the training data
+    /// supports.
+    #[error(
+        "at most {maximum} components are available for this data, but {requested} were requested"
+    )]
+    TooManyComponents {
+        /// Number of components requested.
+        requested: usize,
+        /// Largest supported component count for the training data.
+        maximum: usize,
+    },
 }
 
 /// Result type returned by `MachLearn` operations.

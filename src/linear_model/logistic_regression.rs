@@ -6,12 +6,15 @@ use ndarray::{Array1, Array2, ArrayView2};
 
 use crate::{
     core::{Dataset, Fit, MlError, Predict, Result, validate_features},
-    linear_model::common::{predict_linear, sigmoid},
+    linear_model::{
+        common::{predict_linear, sigmoid},
+        convergence::ConvergenceReport,
+    },
     solver::solve_least_squares,
 };
 
-const MAX_ITERATIONS: usize = 100;
-const CONVERGENCE_TOLERANCE: f64 = 1.0e-10;
+const DEFAULT_MAX_ITERATIONS: usize = 100;
+const DEFAULT_TOLERANCE: f64 = 1.0e-10;
 const MINIMUM_WEIGHT: f64 = 1.0e-12;
 
 /// Configures L2-regularized binary logistic regression.
@@ -24,6 +27,8 @@ const MINIMUM_WEIGHT: f64 = 1.0e-12;
 pub struct LogisticRegression {
     alpha: f64,
     fit_intercept: bool,
+    max_iterations: usize,
+    tolerance: f64,
 }
 
 impl Default for LogisticRegression {
@@ -31,6 +36,8 @@ impl Default for LogisticRegression {
         Self {
             alpha: 1.0,
             fit_intercept: true,
+            max_iterations: DEFAULT_MAX_ITERATIONS,
+            tolerance: DEFAULT_TOLERANCE,
         }
     }
 }
@@ -42,6 +49,8 @@ impl LogisticRegression {
         Self {
             alpha: 1.0,
             fit_intercept: true,
+            max_iterations: DEFAULT_MAX_ITERATIONS,
+            tolerance: DEFAULT_TOLERANCE,
         }
     }
 
@@ -66,6 +75,30 @@ impl LogisticRegression {
         self
     }
 
+    /// Sets the maximum number of iteratively reweighted least-squares
+    /// iterations to attempt before reporting non-convergence.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `max_iterations` is zero.
+    pub fn with_max_iterations(mut self, max_iterations: usize) -> Result<Self> {
+        validate_max_iterations(max_iterations)?;
+        self.max_iterations = max_iterations;
+        Ok(self)
+    }
+
+    /// Sets the convergence tolerance applied to the largest relative
+    /// parameter change between iterations.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `tolerance` is non-positive, NaN, or infinite.
+    pub fn with_tolerance(mut self, tolerance: f64) -> Result<Self> {
+        validate_tolerance(tolerance)?;
+        self.tolerance = tolerance;
+        Ok(self)
+    }
+
     /// Returns the L2 regularization strength.
     #[must_use]
     pub const fn alpha(self) -> f64 {
@@ -78,21 +111,37 @@ impl LogisticRegression {
         self.fit_intercept
     }
 
+    /// Returns the configured iteration budget.
+    #[must_use]
+    pub const fn max_iterations(self) -> usize {
+        self.max_iterations
+    }
+
+    /// Returns the configured convergence tolerance.
+    #[must_use]
+    pub const fn tolerance(self) -> f64 {
+        self.tolerance
+    }
+
     /// Fits a binary classifier using iteratively reweighted least squares.
     ///
-    /// Labels may be any cloneable ordered type. Exactly two distinct classes
+    /// Labels may be any cloneable-ordered type. Exactly two distinct classes
     /// must occur in the training targets.
     ///
     /// # Errors
     ///
-    /// Returns an error for invalid regularization, a target collection that
-    /// does not contain exactly two classes, a rank-deficient unregularized
-    /// design, a numerical failure, or failure to converge.
+    /// Returns an error for invalid regularization, an invalid iteration
+    /// budget or tolerance, a target collection that does not contain
+    /// exactly two classes, a rank-deficient unregularized design, a
+    /// numerical failure, or failure to converge within the configured
+    /// iteration budget.
     pub fn fit<Label>(&self, dataset: &Dataset<Label>) -> Result<FittedLogisticRegression<Label>>
     where
         Label: Clone + Ord,
     {
         validate_alpha(self.alpha)?;
+        validate_max_iterations(self.max_iterations)?;
+        validate_tolerance(self.tolerance)?;
         let classes = sorted_binary_classes(dataset)?;
         let encoded = Array1::from_iter(
             dataset
@@ -100,8 +149,14 @@ impl LogisticRegression {
                 .iter()
                 .map(|label| usize::from(label == &classes[1])),
         );
-        let parameters =
-            fit_parameters(dataset.records(), &encoded, self.fit_intercept, self.alpha)?;
+        let (parameters, convergence) = fit_parameters(
+            dataset.records(),
+            &encoded,
+            self.fit_intercept,
+            self.alpha,
+            self.max_iterations,
+            self.tolerance,
+        )?;
         let (intercept, coefficient_start) = if self.fit_intercept {
             (parameters[0], 1)
         } else {
@@ -113,6 +168,7 @@ impl LogisticRegression {
             intercept,
             alpha: self.alpha,
             classes,
+            convergence,
         })
     }
 }
@@ -136,6 +192,7 @@ pub struct FittedLogisticRegression<Label> {
     intercept: f64,
     alpha: f64,
     classes: Vec<Label>,
+    convergence: ConvergenceReport,
 }
 
 impl<Label> FittedLogisticRegression<Label> {
@@ -179,6 +236,12 @@ impl<Label> FittedLogisticRegression<Label> {
     #[must_use]
     pub fn n_features(&self) -> usize {
         self.coefficients.len()
+    }
+
+    /// Returns how the iteratively reweighted least-squares solver converged.
+    #[must_use]
+    pub const fn convergence(&self) -> &ConvergenceReport {
+        &self.convergence
     }
 
     /// Computes the linear decision score for every row.
@@ -281,7 +344,9 @@ pub(super) fn fit_parameters(
     encoded: &Array1<usize>,
     fit_intercept: bool,
     alpha: f64,
-) -> Result<Array1<f64>> {
+    max_iterations: usize,
+    tolerance: f64,
+) -> Result<(Array1<f64>, ConvergenceReport)> {
     validate_features(records)?;
 
     let offset = usize::from(fit_intercept);
@@ -294,7 +359,7 @@ pub(super) fn fit_parameters(
         parameters[0] = (positive_fraction / (1.0 - positive_fraction)).ln();
     }
 
-    for _iteration in 0..MAX_ITERATIONS {
+    for iteration in 0..max_iterations {
         let mut design = Array2::zeros((records.nrows() + penalty_rows, parameter_count));
         let mut targets = Array1::zeros(records.nrows() + penalty_rows);
 
@@ -339,19 +404,40 @@ pub(super) fn fit_parameters(
             .map(|value| value.abs())
             .fold(1.0_f64, f64::max);
         parameters = updated;
-        if maximum_change <= CONVERGENCE_TOLERANCE * scale {
-            return Ok(parameters);
+        if maximum_change <= tolerance * scale {
+            return Ok((
+                parameters,
+                ConvergenceReport {
+                    iterations: iteration + 1,
+                    max_parameter_change: maximum_change,
+                    tolerance,
+                },
+            ));
         }
     }
 
     Err(MlError::OptimizationDidNotConverge {
-        iterations: MAX_ITERATIONS,
+        iterations: max_iterations,
     })
 }
 
 pub(super) fn validate_alpha(alpha: f64) -> Result<()> {
     if !alpha.is_finite() || alpha < 0.0 {
         return Err(MlError::InvalidRegularization(alpha));
+    }
+    Ok(())
+}
+
+pub(super) fn validate_max_iterations(max_iterations: usize) -> Result<()> {
+    if max_iterations == 0 {
+        return Err(MlError::InvalidMaxIterations(max_iterations));
+    }
+    Ok(())
+}
+
+pub(super) fn validate_tolerance(tolerance: f64) -> Result<()> {
+    if !tolerance.is_finite() || tolerance <= 0.0 {
+        return Err(MlError::InvalidTolerance(tolerance));
     }
     Ok(())
 }
