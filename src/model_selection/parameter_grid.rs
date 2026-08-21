@@ -1,5 +1,8 @@
 use std::collections::BTreeMap;
 
+use rand::{RngExt, SeedableRng};
+use rand_chacha::ChaCha8Rng;
+
 use crate::core::{MlError, Result};
 
 /// A dynamically typed hyperparameter candidate.
@@ -287,6 +290,39 @@ impl ParameterGrid {
                 }
             }
             combinations = expanded;
+        }
+        Ok(combinations)
+    }
+
+    /// Draws `n_iter` random concrete assignments, choosing each
+    /// parameter's value independently and uniformly from its candidate
+    /// list on every draw.
+    ///
+    /// Draws are with replacement: the same assignment may repeat, and
+    /// distinct draws may coincide even without repeats when the grid is
+    /// small. An empty grid draws `n_iter` copies of the empty
+    /// [`ParameterSet`], matching [`Self::combinations`]'s convention that
+    /// it represents one default configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error when `n_iter` is zero.
+    pub fn sample_combinations(&self, n_iter: usize, seed: u64) -> Result<Vec<ParameterSet>> {
+        if n_iter == 0 {
+            return Err(MlError::InvalidSearchIterations(n_iter));
+        }
+
+        let mut rng = ChaCha8Rng::seed_from_u64(seed);
+        let mut combinations = Vec::with_capacity(n_iter);
+        for _draw in 0..n_iter {
+            let mut assignment = ParameterSet::default();
+            for (name, values) in &self.parameters {
+                let index = rng.random_range(0..values.len());
+                assignment
+                    .values
+                    .insert(name.clone(), values[index].clone());
+            }
+            combinations.push(assignment);
         }
         Ok(combinations)
     }

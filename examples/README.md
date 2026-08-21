@@ -19,13 +19,18 @@ root.
 | `regression_metrics`     | MSE, RMSE, MAE, and R-squared                         | `cargo run --example regression_metrics`                   |
 | `classification_metrics` | Accuracy, confusion matrix, precision, recall, and F1 | `cargo run --example classification_metrics`               |
 | `probability_metrics`    | Binary log loss and tie-aware ROC AUC                 | `cargo run --example probability_metrics`                  |
+| `multiclass_probability_metrics` | Multiclass log loss and macro-averaged one-vs-rest ROC AUC | `cargo run --example multiclass_probability_metrics` |
 | `k_fold`                 | Balanced ordered or seeded shuffled folds             | `cargo run --example k_fold`                               |
 | `stratified_k_fold`      | Class-balanced ordered or shuffled folds               | `cargo run --example stratified_k_fold`                    |
 | `cross_validation`       | Independent per-fold model fitting and scoring          | `cargo run --example cross_validation`                     |
 | `parameter_grid`         | Deterministic hyperparameter Cartesian products          | `cargo run --example parameter_grid`                       |
 | `grid_search`            | Cross-validated hyperparameter ranking                    | `cargo run --example grid_search`                          |
+| `randomized_search`      | Cross-validated ranking over a bounded random draw of a grid | `cargo run --example randomized_search`                 |
 | `parallel_cross_validation` | Concurrent deterministic fold scoring                 | `cargo run --example parallel_cross_validation --features parallel` |
 | `parallel_grid_search`   | Concurrent deterministic grid and fold evaluation         | `cargo run --example parallel_grid_search --features parallel` |
+| `parallel_randomized_search` | Concurrent randomized search and fold evaluation      | `cargo run --example parallel_randomized_search --features parallel` |
+| `learning_curve`         | Train/test scores as training-set size grows             | `cargo run --example learning_curve`                       |
+| `validation_curve`       | Train/test scores as a hyperparameter is swept            | `cargo run --example validation_curve`                     |
 | `linear_regression`      | Ordinary least-squares fitting and prediction            | `cargo run --example linear_regression`                    |
 | `ridge_regression`       | L2-regularized regression with intercept handling        | `cargo run --example ridge_regression`                     |
 | `lasso_regression`       | L1-regularized regression and sparse coefficients        | `cargo run --example lasso_regression`                     |
@@ -54,6 +59,8 @@ root.
 | `serde_model`            | Serializing a fitted transformer                      | `cargo run --example serde_model --features serde`         |
 | `model_envelope`         | Version-tagging a fitted model before serializing it  | `cargo run --example model_envelope --features serde`      |
 | `csv_dataset`            | Loading a dataset from CSV data                       | `cargo run --example csv_dataset --features csv`            |
+| `iris_classification`    | Full worked classification example on real Iris flower data (see the [user guide](../docs/user-guide.md)) | `cargo run --example iris_classification --features csv` |
+| `mtcars_regression`      | Full worked regression example on real 1974 car road-test data (see the [user guide](../docs/user-guide.md)) | `cargo run --example mtcars_regression --features csv` |
 | `parallel_batches`       | Transforming independent batches with Rayon           | `cargo run --example parallel_batches --features parallel` |
 
 Compile every example with every optional feature:

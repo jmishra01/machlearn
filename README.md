@@ -94,7 +94,9 @@ constant imputation strategies are available.
 
 Runnable examples for datasets, splitting, preprocessing, every estimator,
 custom models, serialization, CSV loading, and parallel batches are indexed
-in `examples/README.md`.
+in `examples/README.md`. For two complete, worked examples on real
+(non-synthetic) datasets — classifying Iris flower species and predicting
+car fuel economy — see [`docs/user-guide.md`](docs/user-guide.md).
 
 ```text
 cargo run --example dataset

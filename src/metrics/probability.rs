@@ -2,7 +2,7 @@
 // requiring callers to borrow temporary views.
 #![allow(clippy::needless_pass_by_value)]
 
-use ndarray::ArrayView1;
+use ndarray::{ArrayView1, ArrayView2};
 
 use crate::core::{MlError, Result};
 
@@ -44,6 +44,66 @@ where
     finite_result("binary_log_loss", loss)
 }
 
+/// Returns cross-entropy loss for multiclass probabilities.
+///
+/// `probabilities` holds one row per sample and one column per entry of
+/// `classes`, in the same order; a row's contribution is the negative log
+/// of the probability its actual label was assigned. Exact zero
+/// probabilities are clipped to `f64::EPSILON` so the result remains
+/// finite.
+///
+/// # Errors
+///
+/// Returns an error for empty input, a row or column count mismatch, a
+/// non-finite or out-of-range probability, or an actual label absent from
+/// `classes`.
+pub fn multiclass_log_loss<Label>(
+    actual: ArrayView1<'_, Label>,
+    probabilities: ArrayView2<'_, f64>,
+    classes: &[Label],
+) -> Result<f64>
+where
+    Label: Ord,
+{
+    if actual.is_empty() {
+        return Err(MlError::EmptyMetricInput);
+    }
+    if actual.len() != probabilities.nrows() {
+        return Err(MlError::MismatchedMetricInput {
+            actual: actual.len(),
+            predicted: probabilities.nrows(),
+        });
+    }
+    if probabilities.ncols() != classes.len() {
+        return Err(MlError::MismatchedClassCount {
+            expected: classes.len(),
+            actual: probabilities.ncols(),
+        });
+    }
+
+    #[allow(clippy::cast_precision_loss)]
+    let count = actual.len() as f64;
+    let upper = 1.0 - f64::EPSILON;
+    let mut loss = 0.0;
+    for (row, label) in actual.iter().enumerate() {
+        let class_index = classes
+            .binary_search(label)
+            .map_err(|_| MlError::UnknownLabel { index: row })?;
+        let probability = probabilities[[row, class_index]];
+        if !probability.is_finite() {
+            return Err(MlError::NonFiniteProbability { index: row });
+        }
+        if !(0.0..=1.0).contains(&probability) {
+            return Err(MlError::InvalidProbability {
+                index: row,
+                value: probability,
+            });
+        }
+        loss += -probability.clamp(f64::EPSILON, upper).ln() / count;
+    }
+    finite_result("multiclass_log_loss", loss)
+}
+
 /// Returns the area under the binary receiver-operating-characteristic curve.
 ///
 /// This is the probability that a randomly selected positive observation has a
@@ -55,7 +115,6 @@ where
 /// Returns an error for empty or different-length inputs, non-finite or
 /// out-of-range probabilities, a target collection without exactly two
 /// observed classes, or a positive label absent from the targets.
-#[allow(clippy::float_cmp)]
 pub fn roc_auc_score<Label>(
     actual: ArrayView1<'_, Label>,
     positive_probabilities: ArrayView1<'_, f64>,
@@ -65,11 +124,84 @@ where
     Label: Clone + Ord,
 {
     validate_binary_inputs(actual, positive_probabilities, positive_label)?;
+    let is_positive: Vec<bool> = actual.iter().map(|label| label == positive_label).collect();
+    let auc = auc_from_ranks(&is_positive, positive_probabilities);
+    finite_result("roc_auc_score", auc)
+}
 
-    let mut ranked: Vec<_> = positive_probabilities
+/// Returns the macro-averaged one-vs-rest area under the
+/// receiver-operating-characteristic curve for multiclass probabilities.
+///
+/// `probabilities` holds one row per sample and one column per entry of
+/// `classes`, in the same order. Every class in turn is scored as the
+/// "positive" class against every other class pooled as "negative", using
+/// the same rank-based computation as [`roc_auc_score`]; the reported
+/// score is the unweighted mean of those per-class scores.
+///
+/// # Errors
+///
+/// Returns an error for empty input, a row or column count mismatch, a
+/// non-finite or out-of-range probability, or fewer than two classes.
+pub fn roc_auc_score_ovr<Label>(
+    actual: ArrayView1<'_, Label>,
+    probabilities: ArrayView2<'_, f64>,
+    classes: &[Label],
+) -> Result<f64>
+where
+    Label: PartialEq,
+{
+    if actual.is_empty() {
+        return Err(MlError::EmptyMetricInput);
+    }
+    if actual.len() != probabilities.nrows() {
+        return Err(MlError::MismatchedMetricInput {
+            actual: actual.len(),
+            predicted: probabilities.nrows(),
+        });
+    }
+    if probabilities.ncols() != classes.len() {
+        return Err(MlError::MismatchedClassCount {
+            expected: classes.len(),
+            actual: probabilities.ncols(),
+        });
+    }
+    if classes.len() < 2 {
+        return Err(MlError::InsufficientClasses {
+            required: 2,
+            actual: classes.len(),
+        });
+    }
+    for ((row, column), &probability) in probabilities.indexed_iter() {
+        let flat_index = row * classes.len() + column;
+        if !probability.is_finite() {
+            return Err(MlError::NonFiniteProbability { index: flat_index });
+        }
+        if !(0.0..=1.0).contains(&probability) {
+            return Err(MlError::InvalidProbability {
+                index: flat_index,
+                value: probability,
+            });
+        }
+    }
+
+    let mut total = 0.0;
+    for (class_index, class) in classes.iter().enumerate() {
+        let is_positive: Vec<bool> = actual.iter().map(|label| label == class).collect();
+        total += auc_from_ranks(&is_positive, probabilities.column(class_index));
+    }
+    #[allow(clippy::cast_precision_loss)]
+    let macro_auc = total / classes.len() as f64;
+    finite_result("roc_auc_score_ovr", macro_auc)
+}
+
+/// The rank-based binary AUC of `scores` against `is_positive`, without any
+/// input validation; shared by [`roc_auc_score`] and [`roc_auc_score_ovr`].
+#[allow(clippy::float_cmp)]
+fn auc_from_ranks(is_positive: &[bool], scores: ArrayView1<'_, f64>) -> f64 {
+    let mut ranked: Vec<_> = scores
         .iter()
         .copied()
-        .zip(actual.iter().map(|label| label == positive_label))
+        .zip(is_positive.iter().copied())
         .collect();
     ranked.sort_unstable_by(|left, right| left.0.total_cmp(&right.0));
 
@@ -98,9 +230,8 @@ where
     let positive_count = positive_count as f64;
     #[allow(clippy::cast_precision_loss)]
     let negative_count = negative_count as f64;
-    let auc = (positive_rank_sum - positive_count * (positive_count + 1.0) / 2.0)
-        / (positive_count * negative_count);
-    finite_result("roc_auc_score", auc)
+    (positive_rank_sum - positive_count * (positive_count + 1.0) / 2.0)
+        / (positive_count * negative_count)
 }
 
 fn validate_binary_inputs<Label>(

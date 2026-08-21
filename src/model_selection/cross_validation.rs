@@ -207,7 +207,10 @@ where
     Ok(score)
 }
 
-fn select<Target: Clone>(dataset: &Dataset<Target>, indices: &[usize]) -> Result<Dataset<Target>> {
+pub(super) fn select<Target: Clone>(
+    dataset: &Dataset<Target>,
+    indices: &[usize],
+) -> Result<Dataset<Target>> {
     let records = dataset.records().select(Axis(0), indices);
     let targets = dataset.targets().select(Axis(0), indices);
     Dataset::new(records, targets)

@@ -10,7 +10,7 @@ use std::sync::{
 use machlearn::{
     Dataset, Fit, KFold, MlError, ParameterGrid, ParameterSet, Predict, Result, ScoreDirection,
     cross_validate, cross_validate_parallel, grid_search, grid_search_parallel,
-    mean_absolute_error,
+    mean_absolute_error, randomized_search, randomized_search_parallel,
 };
 use ndarray::{Array1, ArrayView2, array};
 
@@ -179,6 +179,54 @@ fn parallel_grid_search_matches_sequential_rankings() {
     assert_eq!(parallel, sequential);
     assert_eq!(sequential_fits.load(Ordering::Relaxed), 16);
     assert_eq!(parallel_fits.load(Ordering::Relaxed), 16);
+}
+
+#[test]
+fn parallel_randomized_search_matches_sequential_rankings() {
+    let dataset = dataset();
+    let folds = KFold::new(4).unwrap().split(dataset.n_samples()).unwrap();
+    let grid = ParameterGrid::new()
+        .with_parameter("prediction", [30.0, 10.0, 20.0, 0.0])
+        .unwrap();
+    let sequential_fits = AtomicUsize::new(0);
+    let parallel_fits = AtomicUsize::new(0);
+
+    let sequential = randomized_search(
+        &grid,
+        6,
+        5,
+        |parameters| {
+            Ok(ConstantRegressor {
+                prediction: prediction(parameters),
+                fit_count: &sequential_fits,
+            })
+        },
+        &dataset,
+        &folds,
+        mean_absolute_error,
+        ScoreDirection::Minimize,
+    )
+    .unwrap();
+    let parallel = randomized_search_parallel(
+        &grid,
+        6,
+        5,
+        |parameters| {
+            Ok(ConstantRegressor {
+                prediction: prediction(parameters),
+                fit_count: &parallel_fits,
+            })
+        },
+        &dataset,
+        &folds,
+        mean_absolute_error,
+        ScoreDirection::Minimize,
+    )
+    .unwrap();
+
+    assert_eq!(parallel, sequential);
+    assert_eq!(sequential_fits.load(Ordering::Relaxed), 24);
+    assert_eq!(parallel_fits.load(Ordering::Relaxed), 24);
 }
 
 #[test]

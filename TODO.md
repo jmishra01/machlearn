@@ -118,14 +118,14 @@ Status markers:
 
 ## 14. Model selection and evaluation expansion
 
-- [ ] Multiclass log loss and one-vs-rest ROC AUC
-- [ ] Randomized hyperparameter search
-- [ ] Learning-curve and validation-curve utilities
+- [x] Multiclass log loss and one-vs-rest ROC AUC
+- [x] Randomized hyperparameter search
+- [x] Learning-curve and validation-curve utilities
 
 ## 15. Release and ecosystem
 
 - [ ] Revisit Arrow/Polars, PyO3, or WebAssembly bindings if a concrete consumer emerges (see `docs/interop-evaluation.md`)
-- [ ] A user guide beyond the README, with worked examples on real (non-synthetic) datasets
+- [x] A user guide beyond the README, with worked examples on real (non-synthetic) datasets
 
 `Publish the 0.1.0 release` is tracked once, in section 9, once sections 10-14 below are as far along as the maintainer wants before a first release.
 

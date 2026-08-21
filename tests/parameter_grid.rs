@@ -121,6 +121,56 @@ fn rejects_invalid_names_duplicates_and_empty_values() {
 }
 
 #[test]
+fn samples_n_iter_assignments_from_valid_candidates() {
+    let grid = ParameterGrid::new()
+        .with_parameter("shuffle", [false, true])
+        .unwrap()
+        .with_parameter("alpha", [0.1, 1.0, 10.0])
+        .unwrap();
+
+    let draws = grid.sample_combinations(50, 7).unwrap();
+
+    assert_eq!(draws.len(), 50);
+    for draw in &draws {
+        assert_eq!(draw.len(), 2);
+        assert!([0.1, 1.0, 10.0].contains(&draw.get("alpha").unwrap().as_f64().unwrap()));
+        assert!([false, true].contains(&draw.get("shuffle").unwrap().as_bool().unwrap()));
+    }
+}
+
+#[test]
+fn sampling_is_deterministic_for_a_fixed_seed() {
+    let grid = ParameterGrid::new()
+        .with_parameter("alpha", [0.1, 1.0, 10.0, 100.0])
+        .unwrap();
+
+    let first = grid.sample_combinations(20, 11).unwrap();
+    let second = grid.sample_combinations(20, 11).unwrap();
+
+    assert_eq!(first, second);
+}
+
+#[test]
+fn sampling_an_empty_grid_draws_n_iter_default_configurations() {
+    let grid = ParameterGrid::new();
+
+    let draws = grid.sample_combinations(4, 0).unwrap();
+
+    assert_eq!(draws.len(), 4);
+    assert!(draws.iter().all(machlearn::ParameterSet::is_empty));
+}
+
+#[test]
+fn rejects_a_zero_iteration_count() {
+    let grid = ParameterGrid::new().with_parameter("alpha", [0.1]).unwrap();
+
+    assert_eq!(
+        grid.sample_combinations(0, 0).unwrap_err(),
+        MlError::InvalidSearchIterations(0)
+    );
+}
+
+#[test]
 fn rejects_non_finite_float_candidates() {
     assert_eq!(
         ParameterGrid::new()

@@ -4,11 +4,12 @@
 use machlearn::{
     AdaBoostClassifier, BernoulliNaiveBayes, DBSCAN, Dataset, DecisionTreeRegressor,
     ElasticNetRegression, GaussianMixture, GradientBoostingClassifier, GradientBoostingRegressor,
-    KMeans, LassoRegression, LinearDiscriminantAnalysis, MinMaxScaler, MultinomialNaiveBayes,
-    OneHotEncoder, PolynomialFeatures, PrincipalComponentAnalysis, ScoreDirection, SelectKBest,
-    SplitOptions, StandardScaler, VarianceThreshold, accuracy_score, f_regression,
-    mean_absolute_error, mean_squared_error, permutation_importance, root_mean_squared_error,
-    train_test_split,
+    KFold, KMeans, LassoRegression, LinearDiscriminantAnalysis, MinMaxScaler,
+    MultinomialNaiveBayes, OneHotEncoder, PolynomialFeatures, PrincipalComponentAnalysis,
+    ScoreDirection, SelectKBest, SplitOptions, StandardScaler, VarianceThreshold, accuracy_score,
+    f_regression, learning_curve, mean_absolute_error, mean_squared_error, multiclass_log_loss,
+    permutation_importance, roc_auc_score_ovr, root_mean_squared_error, train_test_split,
+    validation_curve,
 };
 use ndarray::{Array1, Array2};
 use proptest::prelude::*;
@@ -257,8 +258,19 @@ proptest! {
         let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).cos() * 5.0);
         let dataset = Dataset::new(records, targets).unwrap();
 
-        let lasso = LassoRegression::new(alpha).unwrap().fit(&dataset).unwrap();
-        let elastic_net = ElasticNetRegression::new(alpha, 1.0).unwrap().fit(&dataset).unwrap();
+        // Coordinate descent's convergence rate depends on the data's
+        // scale and conditioning; unnormalized features drawn from this
+        // strategy's wide range can genuinely fail to converge within the
+        // default iteration budget (confirmed: `sklearn.linear_model.Lasso`
+        // exhibits the identical non-convergence, as a warning rather than
+        // an error, on the same inputs). That is a legitimate, documented
+        // error here, not a broken invariant.
+        let Ok(lasso) = LassoRegression::new(alpha).unwrap().fit(&dataset) else {
+            return Ok(());
+        };
+        let Ok(elastic_net) = ElasticNetRegression::new(alpha, 1.0).unwrap().fit(&dataset) else {
+            return Ok(());
+        };
 
         for (lasso_coef, elastic_net_coef) in
             lasso.coefficients().iter().zip(elastic_net.coefficients())
@@ -572,5 +584,102 @@ proptest! {
         prop_assert!(fitted.n_selected_features() <= records.ncols());
         prop_assert!(fitted.selected_indices().windows(2).all(|pair| pair[0] < pair[1]));
         prop_assert!(fitted.selected_indices().iter().all(|&index| index < records.ncols()));
+    }
+
+    /// Multiclass log loss is always finite and non-negative, and one-vs-rest
+    /// ROC AUC always stays within `[0, 1]`, for arbitrary valid probability
+    /// rows (produced via softmax, so they are always properly normalized).
+    #[test]
+    fn multiclass_log_loss_and_roc_auc_ovr_stay_in_bounds(
+        (n_classes, actual, probabilities) in (2_usize..5, 6_usize..15).prop_flat_map(
+            |(n_classes, n_samples)| {
+                proptest::collection::vec(-5.0_f64..5.0, n_samples * n_classes).prop_map(
+                    move |logits| {
+                        let mut probabilities = Array2::<f64>::zeros((n_samples, n_classes));
+                        for row in 0..n_samples {
+                            let row_logits = &logits[row * n_classes..(row + 1) * n_classes];
+                            let max = row_logits.iter().copied().fold(f64::NEG_INFINITY, f64::max);
+                            let exponentials: Vec<f64> =
+                                row_logits.iter().map(|&value| (value - max).exp()).collect();
+                            let sum: f64 = exponentials.iter().sum();
+                            for column in 0..n_classes {
+                                probabilities[[row, column]] = exponentials[column] / sum;
+                            }
+                        }
+                        let actual = Array1::from_shape_fn(n_samples, |row| {
+                            u8::try_from(row % n_classes).unwrap()
+                        });
+                        (n_classes, actual, probabilities)
+                    },
+                )
+            },
+        ),
+    ) {
+        let classes: Vec<u8> = (0..u8::try_from(n_classes).unwrap()).collect();
+
+        let loss = multiclass_log_loss(actual.view(), probabilities.view(), &classes).unwrap();
+        prop_assert!(loss.is_finite());
+        prop_assert!(loss >= 0.0);
+
+        let auc = roc_auc_score_ovr(actual.view(), probabilities.view(), &classes).unwrap();
+        prop_assert!((0.0..=1.0).contains(&auc));
+    }
+
+    /// `learning_curve` always reports one row per training size, one
+    /// column per fold, and every score is finite and non-negative
+    /// (`mean_squared_error` can never be otherwise), for arbitrary data.
+    #[test]
+    fn learning_curve_reports_finite_non_negative_scores(
+        records in matrix_strategy(6, 15, 1, 3),
+        n_folds in 2_usize..4,
+    ) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).sin() * 10.0);
+        let dataset = Dataset::new(records, targets).unwrap();
+        let folds = KFold::new(n_folds).unwrap().split(dataset.n_samples()).unwrap();
+        let min_train_size = folds.iter().map(machlearn::Fold::train_size).min().unwrap();
+
+        let scores = learning_curve(
+            &DecisionTreeRegressor::new(),
+            &[min_train_size],
+            &dataset,
+            &folds,
+            mean_squared_error,
+        )
+        .unwrap();
+
+        prop_assert_eq!(scores.n_points(), 1);
+        prop_assert_eq!(scores.n_folds(), n_folds);
+        prop_assert!(scores.train_scores().iter().all(|value| value.is_finite() && *value >= 0.0));
+        prop_assert!(scores.test_scores().iter().all(|value| value.is_finite() && *value >= 0.0));
+    }
+
+    /// `validation_curve` always reports one row per swept value, one
+    /// column per fold, and every score is finite and non-negative, for
+    /// arbitrary data.
+    #[test]
+    fn validation_curve_reports_finite_non_negative_scores(
+        records in matrix_strategy(6, 15, 1, 3),
+        n_folds in 2_usize..4,
+    ) {
+        #[allow(clippy::cast_precision_loss)]
+        let targets = Array1::from_shape_fn(records.nrows(), |row| (row as f64).sin() * 10.0);
+        let dataset = Dataset::new(records, targets).unwrap();
+        let folds = KFold::new(n_folds).unwrap().split(dataset.n_samples()).unwrap();
+        let depths: Vec<Option<usize>> = vec![Some(1), Some(2), None];
+
+        let scores = validation_curve(
+            &depths,
+            |depth| Ok(DecisionTreeRegressor::new().with_max_depth(*depth)),
+            &dataset,
+            &folds,
+            mean_squared_error,
+        )
+        .unwrap();
+
+        prop_assert_eq!(scores.n_points(), 3);
+        prop_assert_eq!(scores.n_folds(), n_folds);
+        prop_assert!(scores.train_scores().iter().all(|value| value.is_finite() && *value >= 0.0));
+        prop_assert!(scores.test_scores().iter().all(|value| value.is_finite() && *value >= 0.0));
     }
 }

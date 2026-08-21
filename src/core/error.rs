@@ -405,6 +405,25 @@ pub enum MlError {
     /// infinite.
     #[error("threshold must be finite and non-negative; received {0}")]
     InvalidVarianceThreshold(f64),
+
+    /// A probability matrix's column count does not match the supplied
+    /// class list.
+    #[error("expected {expected} classes, but probabilities have {actual} columns")]
+    MismatchedClassCount {
+        /// Number of classes supplied.
+        expected: usize,
+        /// Number of probability columns supplied.
+        actual: usize,
+    },
+
+    /// A randomized-search iteration count is zero.
+    #[error("n_iter must be at least one; received {0}")]
+    InvalidSearchIterations(usize),
+
+    /// A learning-curve or validation-curve call supplied no points to
+    /// evaluate.
+    #[error("at least one point (training size or parameter value) is required")]
+    EmptyCurvePoints,
 }
 
 /// Result type returned by `MachLearn` operations.

@@ -190,9 +190,9 @@ where
     rank_evaluated(evaluated, direction)
 }
 
-type EvaluatedCandidate = (usize, ParameterSet, CrossValidationScores);
+pub(super) type EvaluatedCandidate = (usize, ParameterSet, CrossValidationScores);
 
-fn rank_evaluated(
+pub(super) fn rank_evaluated(
     mut evaluated: Vec<EvaluatedCandidate>,
     direction: ScoreDirection,
 ) -> Result<GridSearchResult> {

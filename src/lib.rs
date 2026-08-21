@@ -69,16 +69,20 @@ pub use crate::metrics::{
     Averaging, ClassMetrics, ClassificationMetricOptions, ClassificationReport, ConfusionMatrix,
     ZeroDivision, accuracy_score, binary_log_loss, classification_report,
     classification_report_with_zero_division, confusion_matrix, f1_score, f1_score_with_options,
-    mean_absolute_error, mean_squared_error, precision_score, precision_score_with_options,
-    r2_score, recall_score, recall_score_with_options, roc_auc_score, root_mean_squared_error,
+    mean_absolute_error, mean_squared_error, multiclass_log_loss, precision_score,
+    precision_score_with_options, r2_score, recall_score, recall_score_with_options, roc_auc_score,
+    roc_auc_score_ovr, root_mean_squared_error,
 };
 pub use crate::model_selection::{
-    CrossValidationScores, Fold, GridSearchEntry, GridSearchResult, KFold, ParameterGrid,
-    ParameterSet, ParameterValue, ScoreDirection, SplitOptions, StratifiedKFold, cross_validate,
-    grid_search, train_test_split,
+    CrossValidationScores, CurveScores, Fold, GridSearchEntry, GridSearchResult, KFold,
+    ParameterGrid, ParameterSet, ParameterValue, ScoreDirection, SplitOptions, StratifiedKFold,
+    cross_validate, grid_search, learning_curve, randomized_search, train_test_split,
+    validation_curve,
 };
 #[cfg(feature = "parallel")]
-pub use crate::model_selection::{cross_validate_parallel, grid_search_parallel};
+pub use crate::model_selection::{
+    cross_validate_parallel, grid_search_parallel, randomized_search_parallel,
+};
 pub use crate::naive_bayes::{
     BernoulliNaiveBayes, FittedBernoulliNaiveBayes, FittedGaussianNaiveBayes,
     FittedMultinomialNaiveBayes, GaussianNaiveBayes, MultinomialNaiveBayes,
