@@ -78,9 +78,9 @@ pub use crate::neighbors::{
 };
 pub use crate::preprocessing::{
     FittedLabelEncoder, FittedMinMaxScaler, FittedOneHotEncoder, FittedPipeline,
-    FittedPolynomialFeatures, FittedSimpleImputer, FittedStandardScaler, FittedTransformer,
-    ImputationStrategy, LabelEncoder, MinMaxScaler, OneHotEncoder, Pipeline, PolynomialFeatures,
-    SimpleImputer, StandardScaler, TransformerEstimator,
+    FittedPipelineEstimator, FittedPolynomialFeatures, FittedSimpleImputer, FittedStandardScaler,
+    FittedTransformer, ImputationStrategy, LabelEncoder, MinMaxScaler, OneHotEncoder, Pipeline,
+    PipelineEstimator, PolynomialFeatures, SimpleImputer, StandardScaler, TransformerEstimator,
 };
 pub use crate::tree::{
     DecisionTreeClassifier, DecisionTreeRegressor, FittedDecisionTreeClassifier,

@@ -9,7 +9,10 @@ mod standard;
 pub use label_encoder::{FittedLabelEncoder, LabelEncoder};
 pub use min_max::{FittedMinMaxScaler, MinMaxScaler};
 pub use one_hot_encoder::{FittedOneHotEncoder, OneHotEncoder};
-pub use pipeline::{FittedPipeline, FittedTransformer, Pipeline, TransformerEstimator};
+pub use pipeline::{
+    FittedPipeline, FittedPipelineEstimator, FittedTransformer, Pipeline, PipelineEstimator,
+    TransformerEstimator,
+};
 pub use polynomial_features::{FittedPolynomialFeatures, PolynomialFeatures};
 pub use simple_imputer::{FittedSimpleImputer, ImputationStrategy, SimpleImputer};
 pub use standard::{FittedStandardScaler, StandardScaler};

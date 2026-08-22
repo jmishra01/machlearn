@@ -2,10 +2,10 @@
 
 use approx::assert_abs_diff_eq;
 use machlearn::{
-    FittedTransformer, MinMaxScaler, Pipeline, Result, SimpleImputer, StandardScaler,
-    TransformerEstimator,
+    Dataset, FittedTransformer, KFold, LinearRegression, MinMaxScaler, Pipeline, Result,
+    SimpleImputer, StandardScaler, TransformerEstimator, cross_validate, r2_score,
 };
-use ndarray::{Array2, ArrayView2, array};
+use ndarray::{Array1, Array2, ArrayView2, array};
 
 fn assert_matrix_close(actual: &Array2<f64>, expected: &Array2<f64>) {
     assert_eq!(actual.dim(), expected.dim());
@@ -101,4 +101,57 @@ fn imputer_can_clean_missing_values_for_later_steps() {
     let transformed = fitted.transform(array![[f64::NAN, 3.0]].view()).unwrap();
     assert!(transformed.iter().all(|value| value.is_finite()));
     assert_abs_diff_eq!(transformed[[0, 0]], 0.0, epsilon = 1.0e-12);
+}
+
+fn linear_dataset() -> Dataset<f64> {
+    let records = array![
+        [1.0, 5.0],
+        [2.0, 3.0],
+        [3.0, 8.0],
+        [4.0, 1.0],
+        [5.0, 6.0],
+        [6.0, 2.0],
+    ];
+    // y = 2 * x0 + 3 * x1, an exact linear relationship so a scaler followed
+    // by linear regression should recover it (through different, transformed
+    // coefficients) without residual error.
+    let targets: Array1<f64> = records
+        .rows()
+        .into_iter()
+        .map(|row| 2.0 * row[0] + 3.0 * row[1])
+        .collect();
+    Dataset::new(records, targets).unwrap()
+}
+
+#[test]
+fn pipeline_estimator_fits_and_predicts_end_to_end() {
+    let dataset = linear_dataset();
+    let pipeline = Pipeline::new()
+        .then(StandardScaler::default())
+        .with_estimator(LinearRegression::new());
+
+    let fitted = pipeline.fit(&dataset).unwrap();
+
+    let held_out = array![[7.0, 4.0], [0.5, 9.0]];
+    let expected = array![2.0 * 7.0 + 3.0 * 4.0, 2.0 * 0.5 + 3.0 * 9.0];
+    let predicted = fitted.predict(held_out.view()).unwrap();
+
+    for (actual, expected) in predicted.iter().zip(expected.iter()) {
+        assert_abs_diff_eq!(actual, expected, epsilon = 1.0e-9);
+    }
+}
+
+#[test]
+fn pipeline_estimator_composes_with_cross_validate() {
+    let dataset = linear_dataset();
+    let pipeline = Pipeline::new()
+        .then(StandardScaler::default())
+        .with_estimator(LinearRegression::new());
+    let folds = KFold::new(3).unwrap().split(dataset.n_samples()).unwrap();
+
+    let scores = cross_validate(&pipeline, &dataset, &folds, r2_score).unwrap();
+
+    for &score in scores.scores() {
+        assert_abs_diff_eq!(score, 1.0, epsilon = 1.0e-9);
+    }
 }
