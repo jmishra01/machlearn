@@ -1,5 +1,10 @@
 # MachLearn
 
+> [!WARNING]
+> MachLearn is under active development and testing. APIs may change without
+> notice between versions, and it has not yet reached a stable `1.0` release.
+> It is not recommended for production use.
+
 MachLearn is an early-stage, CPU-first machine-learning library written in
 Rust. The initial goal is a dependable classical machine-learning API for
 dense tabular data.
