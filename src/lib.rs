@@ -3,38 +3,21 @@
 // formatting for every occurrence makes the README less natural to read.
 #![allow(clippy::doc_markdown)]
 
-mod solver;
-
-/// Clustering estimators.
-pub mod cluster;
-/// Fundamental data structures and traits.
-pub mod core;
-/// Dimensionality-reduction estimators.
-pub mod decomposition;
-/// Discriminant-analysis classifiers.
-pub mod discriminant_analysis;
-/// Bagged decision-tree ensembles for classification and regression.
-pub mod ensemble;
-/// Removing uninformative feature columns before fitting a model.
-pub mod feature_selection;
-/// Model-agnostic tools for inspecting a fitted estimator's behavior.
-pub mod inspection;
-/// Optional dataset input/output helpers.
-pub mod io;
-/// Linear estimators for regression and, later, classification.
-pub mod linear_model;
-/// Regression and, later, classification evaluation metrics.
-pub mod metrics;
-/// Dataset splitting and, later, model-selection utilities.
-pub mod model_selection;
-/// Probabilistic classifiers.
-pub mod naive_bayes;
-/// Distance-based estimators for classification and regression.
-pub mod neighbors;
-/// Data scaling and, later, feature-transformation utilities.
-pub mod preprocessing;
-/// Decision-tree estimators for classification and regression.
-pub mod tree;
+pub use machlearn_core::core;
+pub use machlearn_linear::discriminant_analysis;
+pub use machlearn_linear::linear_model;
+pub use machlearn_metrics::metrics;
+pub use machlearn_model_selection::inspection;
+pub use machlearn_model_selection::model_selection;
+pub use machlearn_preprocessing::feature_selection;
+pub use machlearn_preprocessing::io;
+pub use machlearn_preprocessing::preprocessing;
+pub use machlearn_trees::ensemble;
+pub use machlearn_trees::tree;
+pub use machlearn_unsupervised::cluster;
+pub use machlearn_unsupervised::decomposition;
+pub use machlearn_unsupervised::naive_bayes;
+pub use machlearn_unsupervised::neighbors;
 
 pub use crate::cluster::{
     DBSCAN, FittedDBSCAN, FittedGaussianMixture, FittedKMeans, GaussianMixture, KMeans, KMeansInit,
@@ -57,6 +40,8 @@ pub use crate::feature_selection::{
     f_regression,
 };
 pub use crate::inspection::{PermutationImportance, permutation_importance};
+#[cfg(feature = "arrow")]
+pub use crate::io::arrays_from_record_batch;
 #[cfg(feature = "csv")]
 pub use crate::io::{dataset_from_csv_path, dataset_from_csv_reader};
 pub use crate::linear_model::{

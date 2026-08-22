@@ -1,0 +1,44 @@
+name: Python bindings
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+defaults:
+  run:
+    working-directory: python
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Check formatting
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Create a virtualenv
+        run: python -m venv .venv
+      - name: Install maturin and test dependencies
+        run: |
+          source .venv/bin/activate
+          pip install maturin pytest numpy
+      - name: Build and install the extension
+        run: |
+          source .venv/bin/activate
+          maturin develop --release
+      - name: Run Python tests
+        run: |
+          source .venv/bin/activate
+          pytest tests -v

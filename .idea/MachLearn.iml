@@ -6,6 +6,13 @@
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/core/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/linear/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/metrics/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/model-selection/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/preprocessing/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/trees/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/crates/unsupervised/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />

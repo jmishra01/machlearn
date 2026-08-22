@@ -35,7 +35,7 @@ The current foundation provides:
 - bootstrap-aggregated random forests with per-split feature subsampling;
 - k-means clustering with k-means++ or random initialization;
 - principal component analysis with explained-variance reporting;
-- a versioned model-serialization envelope, and optional CSV dataset loading.
+- a versioned model-serialization envelope, and optional CSV and Arrow `RecordBatch` dataset loading.
 
 ## Example
 
@@ -90,13 +90,17 @@ inputs reject it by default; first fit and apply `SimpleImputer` to raw arrays.
 Positive and negative infinity are invalid everywhere. Mean, median, and finite
 constant imputation strategies are available.
 
+`arrays_from_record_batch` (under the `arrow` feature) maps Arrow null cells
+to `NaN` for the same reason: it returns raw arrays rather than a `Dataset`,
+so nulls can be imputed with `SimpleImputer` before constructing one.
+
 ## More examples
 
 Runnable examples for datasets, splitting, preprocessing, every estimator,
 custom models, serialization, CSV loading, and parallel batches are indexed
 in `examples/README.md`. For two complete, worked examples on real
 (non-synthetic) datasets — classifying Iris flower species and predicting
-car fuel economy — see [`docs/user-guide.md`](docs/user-guide.md).
+car fuel economy — see the [project page](https://jmishra01.github.io/machlearn/).
 
 ```text
 cargo run --example dataset

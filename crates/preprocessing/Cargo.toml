@@ -1,0 +1,23 @@
+[package]
+name = "machlearn-preprocessing"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+csv = ["dep:csv"]
+serde = ["dep:serde", "ndarray/serde", "machlearn-core/serde"]
+arrow = ["dep:arrow-array", "dep:arrow-schema"]
+
+[dependencies]
+ndarray.workspace = true
+csv = { workspace = true, optional = true }
+serde = { workspace = true, optional = true }
+machlearn-core = { path = "../core" }
+arrow-array = { workspace = true, optional = true }
+arrow-schema = { workspace = true, optional = true }

@@ -1,0 +1,20 @@
+[package]
+name = "machlearn-trees"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+serde = ["dep:serde", "ndarray/serde", "machlearn-core/serde"]
+
+[dependencies]
+ndarray.workspace = true
+rand.workspace = true
+rand_chacha.workspace = true
+serde = { workspace = true, optional = true }
+machlearn-core = { path = "../core" }

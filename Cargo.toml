@@ -1,27 +1,88 @@
-[package]
-name = "machlearn"
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+# The PyO3 binding crate is deliberately kept out of this workspace: its
+# `extension-module` feature makes `cargo test`'s unittest harness binary
+# fail to link/run, which would break every existing `cargo
+# build/test/clippy --workspace` invocation. It builds and is verified
+# independently via `maturin` from within `python/`.
+exclude = ["python"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A small, reliable machine-learning library written in Rust"
 license = "MIT OR Apache-2.0"
 publish = false
 
-[features]
-default = []
-csv = ["dep:csv"]
-parallel = ["dep:rayon", "ndarray/rayon", "faer/rayon"]
-serde = ["dep:serde", "ndarray/serde"]
-
-[dependencies]
-csv = { version = "1", optional = true }
-faer = { version = "0.24.4", default-features = false, features = ["linalg", "std"] }
+[workspace.dependencies]
+approx = "0.5"
+arrow-array = { version = "59.2.0", default-features = false }
+arrow-schema = { version = "59.2.0", default-features = false }
+bincode = "1"
 ndarray = "0.17"
+faer = { version = "0.24.4", default-features = false, features = ["linalg", "std"] }
 rand = { version = "0.10", default-features = false, features = ["std", "std_rng"] }
 rand_chacha = "0.10"
-rayon = { version = "1.12", optional = true }
-serde = { version = "1", features = ["derive"], optional = true }
+rayon = "1.12"
+csv = "1"
+serde = { version = "1", features = ["derive"] }
 thiserror = "2"
+
+[workspace.lints.rust]
+missing_docs = "warn"
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+
+[package]
+name = "machlearn"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+description = "A small, reliable machine-learning library written in Rust"
+license.workspace = true
+publish.workspace = true
+
+[lints]
+workspace = true
+
+[features]
+default = []
+csv = ["machlearn-preprocessing/csv"]
+arrow = ["machlearn-preprocessing/arrow", "dep:arrow-array", "dep:arrow-schema"]
+serde = [
+    "machlearn-core/serde",
+    "machlearn-preprocessing/serde",
+    "machlearn-linear/serde",
+    "machlearn-trees/serde",
+    "machlearn-unsupervised/serde",
+    "machlearn-model-selection/serde",
+    "machlearn-metrics/serde",
+]
+bincode = ["serde", "machlearn-core/bincode"]
+parallel = [
+    "machlearn-model-selection/parallel",
+    "machlearn-core/parallel",
+    "machlearn-unsupervised/parallel",
+    "dep:rayon",
+    "ndarray/rayon",
+]
+
+[dependencies]
+ndarray.workspace = true
+rayon = { workspace = true, optional = true }
+arrow-array = { workspace = true, optional = true }
+arrow-schema = { workspace = true, optional = true }
+machlearn-core = { path = "crates/core" }
+machlearn-preprocessing = { path = "crates/preprocessing" }
+machlearn-linear = { path = "crates/linear" }
+machlearn-trees = { path = "crates/trees" }
+machlearn-unsupervised = { path = "crates/unsupervised" }
+machlearn-model-selection = { path = "crates/model-selection" }
+machlearn-metrics = { path = "crates/metrics" }
 
 [dev-dependencies]
 approx = "0.5"
@@ -32,11 +93,3 @@ serde_json = "1"
 [[bench]]
 name = "estimators"
 harness = false
-
-[lints.rust]
-missing_docs = "warn"
-unsafe_code = "forbid"
-
-[lints.clippy]
-all = "warn"
-pedantic = "warn"

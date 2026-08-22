@@ -1,0 +1,10 @@
+# On macOS, a plain `cargo build`/`cargo check` for a PyO3 `extension-module`
+# cdylib needs to tell the linker to defer resolving Python C-API symbols
+# until the module is actually loaded by a Python interpreter (maturin sets
+# this automatically for real wheel builds; this file only helps local
+# `cargo build`/`cargo check` iteration outside of maturin).
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-args=-undefined dynamic_lookup"]
+
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-args=-undefined dynamic_lookup"]

@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MachLearn — classical machine learning in Rust</title>
+<meta name="description" content="MachLearn is a CPU-first, dependable classical machine-learning library for Rust, with dense ndarray/faer-backed estimators, deterministic pipelines, and Python bindings.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f6f5f3;
+    --bg-code: #1e1b16;
+    --text: #1c1a17;
+    --text-dim: #5b564d;
+    --border: #e4e0d8;
+    --accent: #b5482f;
+    --accent-dim: #d98a3d;
+    --accent-bg: #fdf2ea;
+    --card-bg: #ffffff;
+    --shadow: 0 1px 2px rgba(28,26,23,0.06), 0 8px 24px rgba(28,26,23,0.04);
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #17140f;
+      --bg-alt: #1e1a14;
+      --bg-code: #100e0a;
+      --text: #f1ece2;
+      --text-dim: #b3aa9a;
+      --border: #332d24;
+      --accent: #e8794f;
+      --accent-dim: #e8a95c;
+      --accent-bg: #2a2019;
+      --card-bg: #1e1a14;
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #17140f;
+    --bg-alt: #1e1a14;
+    --bg-code: #100e0a;
+    --text: #f1ece2;
+    --text-dim: #b3aa9a;
+    --border: #332d24;
+    --accent: #e8794f;
+    --accent-dim: #e8a95c;
+    --accent-bg: #2a2019;
+    --card-bg: #1e1a14;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+
+  header.hero {
+    border-bottom: 1px solid var(--border);
+    background:
+      radial-gradient(ellipse at top left, var(--accent-bg) 0%, transparent 55%),
+      var(--bg);
+    padding: 88px 0 64px;
+  }
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-bg);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 5px 14px;
+    margin-bottom: 22px;
+  }
+  h1 {
+    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
+    line-height: 1.12;
+    margin: 0 0 18px;
+    letter-spacing: -0.01em;
+  }
+  .hero p.lead {
+    font-size: 1.15rem;
+    color: var(--text-dim);
+    max-width: 660px;
+    margin: 0 0 32px;
+  }
+  .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 40px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    border: 1px solid var(--border);
+  }
+  .btn:hover { text-decoration: none; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { opacity: 0.92; }
+  .btn-secondary { background: var(--card-bg); color: var(--text); }
+  .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+  .codeblock {
+    background: var(--bg-code);
+    color: #ecdfc8;
+    border-radius: 10px;
+    padding: 20px 22px;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    overflow-x: auto;
+    box-shadow: var(--shadow);
+    line-height: 1.55;
+    white-space: pre;
+    margin: 0;
+  }
+  .codeblock .c1 { color: #8a8378; }
+  .codeblock .kw { color: #e8a95c; }
+  .codeblock .ty { color: #e8794f; }
+  .codeblock .fn { color: #c9a6f5; }
+  .codeblock .st { color: #9fd18a; }
+  .codeblock .nm { color: #7fc4d9; }
+
+  section { padding: 72px 0; border-bottom: 1px solid var(--border); }
+  section:last-of-type { border-bottom: none; }
+  .section-head { max-width: 640px; margin-bottom: 40px; }
+  .section-head .kicker {
+    font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 10px;
+  }
+  h2 { font-size: 1.9rem; margin: 0 0 12px; letter-spacing: -0.01em; }
+  .section-head p { color: var(--text-dim); margin: 0; font-size: 1.02rem; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .card h3 { margin: 0 0 8px; font-size: 1.02rem; display: flex; align-items: center; gap: 8px; }
+  .card p { margin: 0; color: var(--text-dim); font-size: 0.92rem; }
+  .card .tag {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--accent-dim); background: var(--accent-bg); border-radius: 6px; padding: 2px 8px;
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 18px;
+    margin: 36px 0 0;
+  }
+  @media (max-width: 700px) { .stat-row { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: var(--card-bg);
+  }
+  .stat .n { font-size: 1.7rem; font-weight: 700; color: var(--accent); }
+  .stat .l { font-size: 0.82rem; color: var(--text-dim); }
+
+  .example {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+    margin-bottom: 56px;
+  }
+  .example:last-child { margin-bottom: 0; }
+  @media (max-width: 860px) { .example { grid-template-columns: 1fr; } }
+  .example h3 { font-size: 1.25rem; margin: 0 0 10px; }
+  .example .desc { color: var(--text-dim); margin-bottom: 16px; font-size: 0.95rem; }
+  .result-box {
+    border: 1px solid var(--accent);
+    background: var(--accent-bg);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+    margin-top: 14px;
+  }
+  .result-box b { color: var(--accent); }
+
+  .taglist { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .taglist span {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    border: 1px solid var(--border);
+    background: var(--bg-alt);
+    border-radius: 6px;
+    padding: 4px 10px;
+    color: var(--text-dim);
+  }
+
+  table.crates { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+  table.crates th, table.crates td { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  table.crates th { color: var(--text-dim); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+  table.crates td code { font-family: var(--mono); font-size: 0.85rem; color: var(--accent); }
+
+  footer {
+    padding: 48px 0 64px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 0.9rem;
+  }
+  footer a { color: var(--text); }
+  footer .flinks { display: flex; gap: 18px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="eyebrow">● pre-1.0 · actively developed</span>
+    <h1>Classical machine learning,<br>built to be dependable in Rust.</h1>
+    <p class="lead">
+      MachLearn is a CPU-first machine-learning library for dense tabular data —
+      deterministic estimators, validated datasets, structured errors, and no
+      silent NaN propagation. Backed by <code>ndarray</code> and an internal
+      <code>faer</code> solver, with optional Python bindings.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="https://github.com/jmishra01/machlearn">View on GitHub</a>
+      <a class="btn btn-secondary" href="#examples">See worked examples</a>
+      <a class="btn btn-secondary" href="#features">Browse features</a>
+    </div>
+    <div class="codeblock"><span class="c1">// Cargo.toml: machlearn = { git = "https://github.com/jmishra01/machlearn" }</span>
+<span class="kw">use</span> machlearn::{Dataset, SplitOptions, train_test_split};
+<span class="kw">use</span> ndarray::array;
+
+<span class="kw">let</span> dataset = Dataset::new(
+    array![[<span class="nm">1.0</span>], [<span class="nm">2.0</span>], [<span class="nm">3.0</span>], [<span class="nm">4.0</span>]],
+    array![<span class="nm">10.0</span>, <span class="nm">20.0</span>, <span class="nm">30.0</span>, <span class="nm">40.0</span>],
+)<span class="fn">?</span>;
+
+<span class="kw">let</span> (train, test) = train_test_split(
+    &amp;dataset,
+    SplitOptions::default().with_seed(<span class="nm">7</span>),
+)<span class="fn">?</span>;</div>
+
+    <div class="stat-row">
+      <div class="stat"><div class="n">7</div><div class="l">workspace crates</div></div>
+      <div class="stat"><div class="n">25+</div><div class="l">estimators &amp; transforms</div></div>
+      <div class="stat"><div class="n">55+</div><div class="l">runnable examples</div></div>
+      <div class="stat"><div class="n">0</div><div class="l">panics on bad input</div></div>
+    </div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker">Capabilities</div>
+      <h2>Everything from a train/test split to gradient boosting</h2>
+      <p>A deliberately small, coherent surface: every estimator follows the same
+      <code>with_*</code> builder → <code>fit</code> → <code>predict</code>/<code>transform</code>
+      shape, so learning one model teaches you the rest.</p>
+    </div>
+
+    <div class="grid">
+      <div class="card"><span class="tag">Core</span><h3>Validated Dataset</h3><p>Fails fast on empty, ragged, or non-finite input — a <code>Dataset</code> you're holding is already known-good.</p></div>
+      <div class="card"><span class="tag">Core</span><h3>Fit / Predict / Transform</h3><p>One consistent trait contract across every estimator and preprocessing step in the library.</p></div>
+      <div class="card"><span class="tag">Core</span><h3>Deterministic splitting &amp; CV</h3><p>Seeded train/test splits, balanced and stratified K-fold, reproducible every run.</p></div>
+
+      <div class="card"><span class="tag">Preprocessing</span><h3>Scalers &amp; encoders</h3><p>Standard and min-max scaling, label and one-hot encoding, polynomial features, imputation.</p></div>
+      <div class="card"><span class="tag">Preprocessing</span><h3>Pipelines</h3><p>Chain preprocessing steps into one fitted object — no manual leakage bookkeeping.</p></div>
+      <div class="card"><span class="tag">Preprocessing</span><h3>Feature selection</h3><p>Variance thresholding and univariate F-test <code>SelectKBest</code> ranking.</p></div>
+
+      <div class="card"><span class="tag">Linear models</span><h3>OLS, Ridge, Lasso, Elastic Net</h3><p>QR-based least squares plus L1/L2-regularized regression with coordinate descent.</p></div>
+      <div class="card"><span class="tag">Linear models</span><h3>Logistic regression</h3><p>Binary and one-vs-rest multiclass, with deterministic classes and calibrated probabilities.</p></div>
+      <div class="card"><span class="tag">Linear models</span><h3>Discriminant analysis</h3><p>Shared-covariance Gaussian LDA with decision scores and probabilities.</p></div>
+
+      <div class="card"><span class="tag">Trees &amp; ensembles</span><h3>Decision trees</h3><p>CART-style classification and regression with feature importances.</p></div>
+      <div class="card"><span class="tag">Trees &amp; ensembles</span><h3>Random forests</h3><p>Bootstrap-aggregated trees with per-split feature subsampling.</p></div>
+      <div class="card"><span class="tag">Trees &amp; ensembles</span><h3>Boosting</h3><p>Gradient boosting (regression &amp; classification) and discrete SAMME AdaBoost.</p></div>
+
+      <div class="card"><span class="tag">Other supervised</span><h3>K-nearest neighbors</h3><p>Uniform or distance-weighted classification and regression.</p></div>
+      <div class="card"><span class="tag">Other supervised</span><h3>Naive Bayes</h3><p>Gaussian, multinomial, and Bernoulli variants with configurable smoothing.</p></div>
+      <div class="card"><span class="tag">Model selection</span><h3>Grid &amp; randomized search</h3><p>Cross-validated hyperparameter sweeps, learning &amp; validation curves.</p></div>
+
+      <div class="card"><span class="tag">Unsupervised</span><h3>Clustering</h3><p>k-means (k-means++ or random init), DBSCAN, and Gaussian mixture models.</p></div>
+      <div class="card"><span class="tag">Unsupervised</span><h3>PCA</h3><p>Dimensionality reduction with explained-variance reporting.</p></div>
+      <div class="card"><span class="tag">Interop</span><h3>Persistence &amp; I/O</h3><p>Versioned serialization envelope, optional CSV loading, Arrow <code>RecordBatch</code> ingestion, and Python bindings.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="examples">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker">Worked examples</div>
+      <h2>Real datasets, not toy synthetic data</h2>
+      <p>Both examples below ship as runnable, CI-checked code in <code>examples/</code>,
+      using classic public-domain reference datasets bundled in the repo.</p>
+    </div>
+
+    <div class="example">
+      <div>
+        <h3>Classifying Iris species</h3>
+        <p class="desc">Fisher's 150-flower measurements (1936), the standard small
+        classification benchmark. A <code>RandomForestClassifier</code> with 100 trees,
+        fit on 105 flowers, predicting 3 species it never saw.</p>
+        <div class="result-box">
+          <b>93.3% accuracy</b> on the held-out split. Petal length/width dominate
+          feature importances (0.39 / 0.48) — consistent with a century of botany.
+        </div>
+        <div class="taglist"><span>RandomForestClassifier</span><span>confusion_matrix</span><span>classification_report</span></div>
+      </div>
+      <div class="codeblock"><span class="kw">let</span> dataset: Dataset&lt;String&gt; =
+    dataset_from_csv_path(<span class="st">"examples/data/iris.csv"</span>, <span class="kw">true</span>, <span class="nm">4</span>)<span class="fn">?</span>;
+
+<span class="kw">let</span> (train, test) = train_test_split(
+    &amp;dataset, SplitOptions::new(<span class="nm">0.3</span>).with_seed(<span class="nm">0</span>),
+)<span class="fn">?</span>;
+
+<span class="kw">let</span> model = RandomForestClassifier::new()
+    .with_n_estimators(<span class="nm">100</span>)<span class="fn">?</span>
+    .with_seed(<span class="nm">0</span>)
+    .fit(&amp;train)<span class="fn">?</span>;
+
+<span class="kw">let</span> predictions = model.predict(test.records())<span class="fn">?</span>;
+<span class="kw">let</span> accuracy =
+    accuracy_score(test.targets(), predictions.view())<span class="fn">?</span>;</div>
+    </div>
+
+    <div class="example">
+      <div>
+        <h3>Predicting fuel economy</h3>
+        <p class="desc">1974 <em>Motor Trend</em> road-test data for 32 cars. Ten
+        correlated specs on 24 training cars — a natural fit for L2-regularized
+        regression instead of plain least squares.</p>
+        <div class="result-box">
+          <b>R² of 0.87</b>, mean absolute error of <b>1.93 mpg</b> on 8 held-out cars.
+          The largest fitted coefficient is weight (<code>wt</code>) — matching the
+          well-known relationship between mass and fuel economy.
+        </div>
+        <div class="taglist"><span>RidgeRegression</span><span>StandardScaler</span><span>r2_score</span></div>
+      </div>
+      <div class="codeblock"><span class="kw">let</span> dataset: Dataset&lt;f64&gt; =
+    dataset_from_csv_path(<span class="st">"examples/data/mtcars.csv"</span>, <span class="kw">true</span>, <span class="nm">0</span>)<span class="fn">?</span>;
+<span class="kw">let</span> (train, test) = train_test_split(
+    &amp;dataset, SplitOptions::new(<span class="nm">0.25</span>).with_seed(<span class="nm">0</span>),
+)<span class="fn">?</span>;
+
+<span class="c1">// fit the scaler on train only — no leakage</span>
+<span class="kw">let</span> scaler = StandardScaler::default().fit(train.records())<span class="fn">?</span>;
+<span class="kw">let</span> scaled_train = Dataset::new(
+    scaler.transform(train.records())<span class="fn">?</span>, train.targets().to_owned(),
+)<span class="fn">?</span>;
+
+<span class="kw">let</span> model = RidgeRegression::new(<span class="nm">1.0</span>)<span class="fn">?</span>.fit(&amp;scaled_train)<span class="fn">?</span>;
+<span class="kw">let</span> r_squared = r2_score(test.targets(), predictions.view())<span class="fn">?</span>;</div>
+    </div>
+  </div>
+</section>
+
+<section id="crates">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="kicker">Architecture</div>
+      <h2>A Cargo workspace, not a monolith</h2>
+      <p>The public <code>machlearn</code> crate re-exports a workspace of focused
+      crates, so the dependency graph stays legible as the estimator surface grows.</p>
+    </div>
+    <table class="crates">
+      <tr><th>Crate</th><th>Provides</th></tr>
+      <tr><td><code>machlearn-core</code></td><td>Dataset, traits, errors, the faer-backed solver</td></tr>
+      <tr><td><code>machlearn-preprocessing</code></td><td>Scalers, encoders, imputation, pipelines, CSV/Arrow I/O</td></tr>
+      <tr><td><code>machlearn-linear</code></td><td>OLS, Ridge, Lasso, Elastic Net, logistic regression, LDA</td></tr>
+      <tr><td><code>machlearn-trees</code></td><td>Decision trees, random forests, gradient boosting, AdaBoost</td></tr>
+      <tr><td><code>machlearn-unsupervised</code></td><td>KNN, Naive Bayes, k-means, DBSCAN, Gaussian mixtures, PCA</td></tr>
+      <tr><td><code>machlearn-model-selection</code></td><td>Cross-validation, grid/randomized search, curves, permutation importance</td></tr>
+      <tr><td><code>machlearn-metrics</code></td><td>Regression, classification, and probability metrics</td></tr>
+    </table>
+    <p style="margin-top:18px; color: var(--text-dim); font-size:0.92rem;">
+      Optional Python bindings (<code>python/</code>, via PyO3 + maturin) expose the
+      same estimators to NumPy-backed workflows.
+    </p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flinks">
+      <a href="https://github.com/jmishra01/machlearn">GitHub</a>
+      <a href="https://github.com/jmishra01/machlearn/tree/main/examples">Examples index</a>
+      <a href="https://github.com/jmishra01/machlearn/blob/main/TODO.md">Roadmap</a>
+      <a href="https://github.com/jmishra01/machlearn/blob/main/LICENSE-MIT">MIT</a>
+      <a href="https://github.com/jmishra01/machlearn/blob/main/LICENSE-APACHE">Apache 2.0</a>
+    </div>
+    MachLearn is pre-1.0 and not yet published to crates.io. Its public API may change.
+  </div>
+</footer>
+
+</body>
+</html>

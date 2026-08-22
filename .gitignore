@@ -1,5 +1,14 @@
 /target/
+python/target/
 
+# Python bindings build artifacts
+python/__pycache__/
+python/*.egg-info/
+python/dist/
+python/.venv/
+python/.pytest_cache/
+python/tests/__pycache__/
+*.so
 
 # Coding Agent
 .claude/
