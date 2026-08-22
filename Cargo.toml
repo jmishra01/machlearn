@@ -24,15 +24,15 @@ categories = ["algorithms", "science"]
 approx = "0.5"
 arrow-array = { version = "59.2.0", default-features = false }
 arrow-schema = { version = "59.2.0", default-features = false }
-bincode = "1"
-ndarray = "0.17"
+bincode = "3.0.0"
+ndarray = "0.17.2"
 faer = { version = "0.24.4", default-features = false, features = ["linalg", "std"] }
-rand = { version = "0.10", default-features = false, features = ["std", "std_rng"] }
+rand = { version = "0.10.2", default-features = false, features = ["std", "std_rng"] }
 rand_chacha = "0.10"
 rayon = "1.12"
-csv = "1"
-serde = { version = "1", features = ["derive"] }
-thiserror = "2"
+csv = "1.4.0"
+serde = { version = "1.0.229", features = ["derive"] }
+thiserror = "2.0.20"
 
 [workspace.lints.rust]
 missing_docs = "warn"
@@ -95,10 +95,10 @@ machlearn-model-selection = { path = "crates/model-selection" }
 machlearn-metrics = { path = "crates/metrics" }
 
 [dev-dependencies]
-approx = "0.5"
-criterion = "0.8"
-proptest = "1.11"
-serde_json = "1"
+approx = "0.5.1"
+criterion = "0.8.2"
+proptest = "1.11.0"
+serde_json = "1.0.151"
 
 [[bench]]
 name = "estimators"
