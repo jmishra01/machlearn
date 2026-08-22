@@ -14,6 +14,11 @@ edition = "2024"
 rust-version = "1.85"
 license = "MIT OR Apache-2.0"
 publish = false
+repository = "https://github.com/jmishra01/machlearn"
+homepage = "https://github.com/jmishra01/machlearn"
+readme = "README.md"
+keywords = ["machine-learning", "ml", "statistics", "ndarray", "data-science"]
+categories = ["algorithms", "science"]
 
 [workspace.dependencies]
 approx = "0.5"
@@ -45,6 +50,11 @@ rust-version.workspace = true
 description = "A small, reliable machine-learning library written in Rust"
 license.workspace = true
 publish.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
 
 [lints]
 workspace = true
