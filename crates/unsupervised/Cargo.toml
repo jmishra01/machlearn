@@ -1,5 +1,6 @@
 [package]
 name = "machlearn-unsupervised"
+description = "Clustering, PCA, k-nearest-neighbors, and Naive Bayes models for MachLearn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,5 +20,5 @@ faer.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 serde = { workspace = true, optional = true }
-machlearn-core = { path = "../core" }
-machlearn-preprocessing = { path = "../preprocessing" }
+machlearn-core = { path = "../core", version = "0.1.0" }
+machlearn-preprocessing = { path = "../preprocessing", version = "0.1.0" }

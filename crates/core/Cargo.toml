@@ -1,5 +1,6 @@
 [package]
 name = "machlearn-core"
+description = "Core Fit/Predict/Transform traits, the validated Dataset type, and shared solvers for MachLearn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

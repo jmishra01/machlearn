@@ -1,5 +1,6 @@
 [package]
 name = "machlearn-metrics"
+description = "Regression and classification evaluation metrics for MachLearn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -15,4 +16,4 @@ serde = ["dep:serde", "ndarray/serde", "machlearn-core/serde"]
 [dependencies]
 ndarray.workspace = true
 serde = { workspace = true, optional = true }
-machlearn-core = { path = "../core" }
+machlearn-core = { path = "../core", version = "0.1.0" }

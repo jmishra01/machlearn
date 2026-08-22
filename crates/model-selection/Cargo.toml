@@ -1,5 +1,6 @@
 [package]
 name = "machlearn-model-selection"
+description = "Cross-validation, grid/randomized search, learning curves, and feature importance for MachLearn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -19,4 +20,4 @@ rand.workspace = true
 rand_chacha.workspace = true
 rayon = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
-machlearn-core = { path = "../core" }
+machlearn-core = { path = "../core", version = "0.1.0" }

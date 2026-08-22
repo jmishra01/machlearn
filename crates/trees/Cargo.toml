@@ -1,5 +1,6 @@
 [package]
 name = "machlearn-trees"
+description = "Decision-tree and ensemble (random forest, gradient boosting, AdaBoost) models for MachLearn"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -17,4 +18,4 @@ ndarray.workspace = true
 rand.workspace = true
 rand_chacha.workspace = true
 serde = { workspace = true, optional = true }
-machlearn-core = { path = "../core" }
+machlearn-core = { path = "../core", version = "0.1.0" }
